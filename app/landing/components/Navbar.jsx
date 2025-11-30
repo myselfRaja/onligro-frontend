@@ -63,16 +63,12 @@ useEffect(() => {
   `}
 >
 
-          <a href="#features" className="text-base" onClick={() => setOpen(false)}>
-            Features
+          <a href="/" className="text-base" onClick={() => setOpen(false)}>
+            Home
           </a>
 
-          <a href="#pricing" className="text-base" onClick={() => setOpen(false)}>
-            Pricing
-          </a>
-
-          <a href="#demo" className="text-base" onClick={() => setOpen(false)}>
-            Demo
+          <a href="/salons" className="text-base" onClick={() => setOpen(false)}>
+            Find Salons
           </a>
 
           <a href="/auth/login" className="text-base" onClick={() => setOpen(false)}>
