@@ -18,7 +18,8 @@ export default function ServiceSelector({
     async function loadServices() {
       try {
         setLoading(true);
-        const res = await fetch(`http://localhost:5000/public/services/${salonId}`);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/services/${salonId}`
+);
         const data = await res.json();
         setServices(data.services || []);
       } catch (error) {

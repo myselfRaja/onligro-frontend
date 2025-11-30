@@ -8,7 +8,8 @@ export default async function SalonBookingPage({ params }) {
   const { salonId } = await params;
 
   const salonRes = await fetch(
-    `http://localhost:5000/public/salon/${salonId}`,
+    `${process.env.NEXT_PUBLIC_API_URL}/public/salon/${salonId}`
+,
     { cache: "no-store" }
   );
 

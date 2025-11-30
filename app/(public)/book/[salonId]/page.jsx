@@ -33,7 +33,8 @@ export default function SalonBookingPage({ params }) {
     async function fetchSalon() {
       try {
         setError(null);
-        const res = await fetch(`http://localhost:5000/public/salon/${salonId}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/salon/${salonId}`
+, {
           cache: "no-store",
         });
         
@@ -94,7 +95,8 @@ const handleCreateAppointment = async () => {
   try {
     setIsSubmitting(true);
 
-    const res = await fetch("http://localhost:5000/public/appointments/create", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/public/appointments/create`
+, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)

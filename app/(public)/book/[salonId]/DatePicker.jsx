@@ -15,7 +15,8 @@ export default function DatePicker({ salonId, onDateSelect, selectedDate: extern
       try {
         setLoading(true);
         const res = await fetch(
-          `http://localhost:5000/public/working-hours/${salonId}`
+          `${process.env.NEXT_PUBLIC_API_URL}/public/working-hours/${salonId}`
+
         );
 
         if (res.ok) {

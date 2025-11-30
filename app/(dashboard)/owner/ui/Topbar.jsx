@@ -24,10 +24,14 @@ export default function Topbar() {
   useEffect(() => {
     async function fetchOwnerProfile() {
       try {
-        const res = await fetch("http://localhost:5000/owner/profile", {
-          method: "GET",
-          credentials: "include",
-        });
+       const res = await fetch(
+  `${process.env.NEXT_PUBLIC_API_URL}/owner/profile`,
+  {
+    method: "GET",
+    credentials: "include",
+  }
+);
+
 
         const data = await res.json();
 
