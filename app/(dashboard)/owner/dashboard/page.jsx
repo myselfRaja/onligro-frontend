@@ -150,14 +150,15 @@ export default function OwnerDashboardPage() {
 }
 
 /* --- Mini Component --- */
+/* --- Mini Component --- */
 function ActionButton({ href, icon, label }) {
   return (
     <a
       href={href}
-      className="card p-4 flex flex-col items-center justify-center gap-2 hover:shadow-lg transition"
+      className="card p-4 flex flex-col items-center justify-center gap-2 hover:shadow-lg transition text-center"
     >
       <span className="text-3xl">{icon}</span>
-      <p className="text-sm font-medium">{label}</p>
+      <p className="text-sm font-medium text-center w-full">{label}</p>
     </a>
   );
 }
