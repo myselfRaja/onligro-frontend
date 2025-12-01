@@ -39,29 +39,35 @@ export default function DatePicker({ salonId, onDateSelect, selectedDate: extern
   }, [salonId]);
 
   // Generate next 14 days with closed day filtering
-  const generateAvailableDates = (closedDaysList) => {
-    const dates = [];
-    const today = new Date();
+ const generateAvailableDates = (closedDaysList) => {
+  const dates = [];
+  const today = new Date();
+  
+  for (let i = 0; i < 14; i++) {
+    const date = new Date();
+    date.setDate(today.getDate() + i);
     
-    for (let i = 0; i < 14; i++) {
-      const date = new Date();
-      date.setDate(today.getDate() + i);
-      
-      const dayOfWeek = date.getDay();
-      const isClosed = closedDaysList.includes(dayOfWeek);
-      
-      dates.push({
-        date: date.toISOString().split('T')[0],
-        day: date.toLocaleDateString('en-IN', { weekday: 'short' }),
-        dateNum: date.getDate(),
-        month: date.toLocaleDateString('en-IN', { month: 'short' }),
-        isClosed,
-        isToday: i === 0
-      });
-    }
+    const dayOfWeek = date.getDay();
+    const isClosed = closedDaysList.includes(dayOfWeek);
     
-    setAvailableDates(dates);
-  };
+    // Local date string banayein (YYYY-MM-DD format mein)
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const localDateString = `${year}-${month}-${day}`;
+    
+    dates.push({
+      date: localDateString, // ISO string ki jagah local date use karein
+      day: date.toLocaleDateString('en-IN', { weekday: 'short' }),
+      dateNum: date.getDate(),
+      month: date.toLocaleDateString('en-IN', { month: 'short' }),
+      isClosed,
+      isToday: i === 0
+    });
+  }
+  
+  setAvailableDates(dates);
+};
 
   const handleDateSelect = (date) => {
     if (date.isClosed) return;
@@ -71,15 +77,19 @@ export default function DatePicker({ salonId, onDateSelect, selectedDate: extern
   };
 
   // Format date for display
-  const formatSelectedDate = (dateStr) => {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
+ const formatSelectedDate = (dateStr) => {
+  if (!dateStr) return '';
+  
+  // Date string ko properly parse karein
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  
+  return date.toLocaleDateString('en-IN', { 
+    weekday: 'short', 
+    month: 'short', 
+    day: 'numeric' 
+  });
+};
 
   if (loading) {
     return (

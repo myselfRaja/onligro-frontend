@@ -18,7 +18,7 @@ export default function Hero() {
 
       <div className="flex flex-col sm:flex-row gap-4 mt-8 w-full sm:w-auto">
        <a
-  href="/auth/register"
+  href="/register"
   className="px-6 py-3 text-center bg-black text-white rounded-lg font-medium hover:bg-neutral-900 transition shadow w-full sm:w-auto"
 >
   Get Started – Free

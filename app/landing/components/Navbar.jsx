@@ -71,12 +71,12 @@ useEffect(() => {
             Find Salons
           </a>
 
-          <a href="/auth/login" className="text-base" onClick={() => setOpen(false)}>
+          <a href="/login" className="text-base" onClick={() => setOpen(false)}>
             Login
           </a>
 
           <a
-            href="/auth/register"
+            href="/register"
             className="mt-2 px-4 py-3 bg-black text-white rounded-lg text-center"
             onClick={() => setOpen(false)}
           >
