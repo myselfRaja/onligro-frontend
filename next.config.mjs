@@ -12,6 +12,24 @@ const nextConfig = {
       },
     ],
   },
+
+    async redirects() {
+    return [
+      // Redirect ONLY when user visits dashboard.onligro.com
+      {
+        source: "/",
+        has: [
+          {
+            type: "host",
+            value: "dashboard.onligro.com",
+          },
+        ],
+        destination: "/owner/dashboard",
+        permanent: true,
+      },
+    ];
+  },
 };
+
 
 export default nextConfig;
