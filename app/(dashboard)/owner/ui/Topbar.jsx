@@ -63,13 +63,27 @@ export default function Topbar() {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      await fetch("/api/logout", { method: "POST" });
-      window.location.href = "/login";
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
+  console.log("🔵 Signout initiated");
+  
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, { 
+      method: "POST",
+      credentials: "include",
+    });
+    
+    console.log("🟢 Logout response status:", response.status);
+    
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Force redirect
+    window.location.href = "/login";
+    
+  } catch (error) {
+    console.error("🔴 Logout error:", error);
+    window.location.href = "/login";
+  }
+};
 
   // ✅ No fake notifications - Empty state only
 
