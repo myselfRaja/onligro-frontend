@@ -1,3 +1,4 @@
+import Link from "next/link";
 export default function Footer() {
   return (
     <footer className="relative bg-gradient-to-b from-gray-900 to-black text-white overflow-hidden">
@@ -56,17 +57,25 @@ export default function Footer() {
               <span className="w-2 h-2 bg-pink-500 rounded-full"></span>
               Product
             </h3>
-            <div className="space-y-4">
-              {['Features', 'Pricing', 'Case Studies', 'API Docs', 'Changelog'].map((item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="block text-gray-400 hover:text-white transition-colors duration-200 hover:translate-x-1 transform"
-                >
-                  {item}
-                </a>
-              ))}
-            </div>
+           <div className="space-y-4">
+  <Link
+    href="/about"
+    className="block text-gray-400 hover:text-white transition-colors duration-200 hover:translate-x-1 transform"
+  >
+    About
+  </Link>
+
+  {['Features', 'Pricing', 'Case Studies', 'API Docs', 'Changelog'].map((item) => (
+    <a
+      key={item}
+      href="#"
+      className="block text-gray-400 hover:text-white transition-colors duration-200 hover:translate-x-1 transform"
+    >
+      {item}
+    </a>
+  ))}
+</div>
+
           </div>
 
           {/* Solutions */}
@@ -146,15 +155,23 @@ export default function Footer() {
 
             {/* Legal Links */}
             <div className="flex flex-wrap gap-6 text-sm">
-              {['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Security', 'Compliance'].map((item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="text-gray-500 hover:text-gray-300 transition-colors duration-200"
-                >
-                  {item}
-                </a>
-              ))}
+             <Link
+  href="/about"
+  className="text-gray-500 hover:text-gray-300 transition-colors duration-200"
+>
+  About
+</Link>
+
+{['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Security', 'Compliance'].map((item) => (
+  <a
+    key={item}
+    href="#"
+    className="text-gray-500 hover:text-gray-300 transition-colors duration-200"
+  >
+    {item}
+  </a>
+))}
+
             </div>
 
             {/* Trust Badges */}
