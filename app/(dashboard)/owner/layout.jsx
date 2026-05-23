@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "./ui/Sidebar";
 import Topbar from "./ui/Topbar";
 import BottomNav from "./ui/BottomNav";
-
+import { Loader } from "lucide-react";
 export default function OwnerDashboardLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ export default function OwnerDashboardLayout({ children }) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+         <Loader className="animate-spin text-gray-500" size={28} />
           <p className="mt-4 text-gray-600">Verifying authentication...</p>
         </div>
       </div>

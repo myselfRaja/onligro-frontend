@@ -62,25 +62,27 @@ export default function Topbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = async () => {
-  console.log("🔵 Signout initiated");
-  
+const handleLogout = async () => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, { 
-      method: "POST",
-      credentials: "include",
-    });
-    
-    console.log("🟢 Logout response status:", response.status);
-    
-    localStorage.clear();
+
+    await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/logout`,
+      {
+        method: "POST",
+        credentials: "include",
+      }
+    );
+
+    localStorage.removeItem("owner");
+
     sessionStorage.clear();
-    
-    // Force redirect
+
     window.location.href = "/login";
-    
+
   } catch (error) {
-    console.error("🔴 Logout error:", error);
+
+    console.log("Logout error:", error);
+
     window.location.href = "/login";
   }
 };
