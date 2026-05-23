@@ -65,16 +65,16 @@ export default function OwnerDashboardLayout({ children }) {
   };
 
   // ✅ Loading state
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-[var(--color-bg)]">
-        <div className="text-center">
-         <Loader className="animate-spin text-gray-500" size={28} />
-          <p className="mt-4 text-gray-600">Verifying authentication...</p>
-        </div>
+if (loading) {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-[var(--color-bg)] z-50">
+      <div className="text-center">
+        <Loader className="animate-spin text-gray-500 mx-auto" size={32} />
+        <p className="mt-4 text-gray-600">Verifying authentication...</p>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // ✅ Don't render layout if not authenticated
   if (!owner) {

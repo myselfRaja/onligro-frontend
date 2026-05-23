@@ -111,35 +111,43 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       {/* ========================= */}
       {/* MOBILE BOTTOM NAVBAR */}
       {/* ========================= */}
-     {/* MOBILE BOTTOM NAVBAR */}
-<div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0D1025] border-t border-white/10 py-2 flex justify-around items-center text-white z-50">
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0D1025] border-t border-white/10 py-2 flex justify-around text-white z-50">
 
-  {mobileNavItems.map((item) => {
+        {menuItems.slice(0, 4).map((item) => {
 
-    const active = pathname.startsWith(item.href);
+          const active = pathname.startsWith(item.href);
 
-    return (
-      <Link key={item.href} href={item.href}>
+          return (
+            <Link key={item.href} href={item.href}>
 
-        <div
-          className={`flex flex-col items-center text-[10px] ${
-            active ? "text-purple-400" : "text-white/70"
-          }`}
+              <div
+                className={`flex flex-col items-center text-xs ${
+                  active ? "text-purple-400" : "text-white/70"
+                }`}
+              >
+
+                <span className="text-xl">
+                  {item.icon}
+                </span>
+
+                {item.name.split(" ")[0]}
+
+              </div>
+
+            </Link>
+          );
+        })}
+
+        {/* More Button */}
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="flex flex-col items-center text-xs text-white/70"
         >
+          <span className="text-xl">⋮</span>
+          More
+        </button>
 
-          <span className="text-xl">
-            {item.icon}
-          </span>
-
-          {item.name}
-
-        </div>
-
-      </Link>
-    );
-  })}
-
-</div>
+      </div>
 
       {/* ========================= */}
       {/* MOBILE FULL MENU DRAWER */}
