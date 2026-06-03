@@ -6,6 +6,7 @@ import SalonHeaderClient from "./SalonHeaderClient";
 import ServiceSelector from "./ServiceSelector";
 import DatePicker from "./DatePicker";
 import SlotSelector from "./SlotSelector";
+import StaffSelector from "./StaffSelector";
 import { useRouter } from "next/navigation";
 
 
@@ -22,10 +23,13 @@ export default function SalonBookingPage({ params }) {
   const [selectedDate, setSelectedDate] = useState("");
   const [totalDuration, setTotalDuration] = useState(0);
   const [selectedTime, setSelectedTime] = useState("");
+  const [staffList, setStaffList] = useState([]);
+const [selectedStaff, setSelectedStaff] = useState("");
   const [customer, setCustomer] = useState({
     name: "",
     phone: ""
   });
+  const [bookingError, setBookingError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch salon
@@ -52,14 +56,32 @@ export default function SalonBookingPage({ params }) {
       }
     }
     
-    if (salonId) {
-      fetchSalon();
-    }
+   if (salonId) {
+  fetchSalon();
+  fetchStaff();
+}
   }, [salonId]);
+
+  async function fetchStaff() {
+  try {
+    const res = await fetch(
+     `${process.env.NEXT_PUBLIC_API_URL}/public/salon/staff/${salonId}`
+    );
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setStaffList(data.staff || []);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
 
  const router = useRouter();
 
 const handleCreateAppointment = async () => {
+  setBookingError("");
   // Validation
   if (!selectedServices.length) {
     alert("Please select at least one service.");
@@ -82,15 +104,16 @@ const handleCreateAppointment = async () => {
     return;
   }
 
-  const payload = {
-    salonId,
-    services: selectedServices,
-    date: selectedDate,
-    time: selectedTime,
-    customerName: customer.name,
-    customerPhone: customer.phone,
-    duration: totalDuration
-  };
+ const payload = {
+  salonId,
+  services: selectedServices,
+  date: selectedDate,
+  time: selectedTime,
+  customerName: customer.name,
+  customerPhone: customer.phone,
+  duration: totalDuration,
+  staffId: selectedStaff || null,
+};
 
   try {
     setIsSubmitting(true);
@@ -104,13 +127,16 @@ const handleCreateAppointment = async () => {
 
     const data = await res.json();
 
-    if (res.ok) {
-      // SUCCESS → Go to Success Page
-      router.push(`/book/${salonId}/success?appointmentId=${data.appointment._id}`);
-      return;
-    } else {
-      alert(data.error || "Failed to create appointment");
-    }
+ if (res.ok) {
+  router.push(`/book/${salonId}/success?appointmentId=${data.appointment._id}`);
+  return;
+} else {
+  setBookingError(
+    data.message ||
+    data.error ||
+    "Unable to complete your booking. Please try again."
+  );
+}
 
   } catch (err) {
     console.error("Create error:", err);
@@ -151,9 +177,7 @@ const handleCreateAppointment = async () => {
   }
 
   // Debug logs (remove in production)
-  console.log("selectedServices:", selectedServices);
-  console.log("totalDuration:", totalDuration);
-
+ 
   return (
     <div className="min-h-screen bg-gray-50">
       <SalonHeaderClient salon={salon} />
@@ -187,7 +211,11 @@ const handleCreateAppointment = async () => {
     />
   </div>
 </div>
-
+<StaffSelector
+  staffList={staffList}
+  selectedStaff={selectedStaff}
+  setSelectedStaff={setSelectedStaff}
+/>
         {/* 3. Date Selection */}
         <DatePicker
           salonId={salonId}
@@ -205,7 +233,13 @@ const handleCreateAppointment = async () => {
             selectedTime={selectedTime}
           />
         )}
-
+{bookingError && (
+  <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+    <p className="text-red-700 font-medium">
+      {bookingError}
+    </p>
+  </div>
+)}
         {/* 5. Confirmation Button */}
         {selectedTime && (
           <button

@@ -49,10 +49,13 @@ export default function StaffPage() {
         credentials: "include",
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setStaffList(data.staff || []);
-      }
+    const data = await res.json();
+
+if (res.ok) {
+  setStaffList(data.staff || []);
+  console.log("Staff Data:", data.staff);
+  console.log(data.staff[0]);
+}
     } catch (error) {
       console.error("Failed to fetch staff:", error);
     } finally {
@@ -138,7 +141,23 @@ export default function StaffPage() {
       setActionLoading(null);
     }
   }
+async function toggleStaffStatus(staffId) {
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/staff/toggle-status/${staffId}`,
+      {
+        method: "PUT",
+        credentials: "include",
+      }
+    );
 
+    if (res.ok) {
+      await fetchStaff();
+    }
+  } catch (error) {
+    console.error("Failed to toggle staff status:", error);
+  }
+}
   // ===========================
   // Open edit modal
   // ===========================
@@ -324,14 +343,28 @@ export default function StaffPage() {
                       <h4 className="font-semibold text-gray-900 text-lg mb-1">{staff.name}</h4>
                       <p className="text-gray-600 text-sm mb-3">{staff.role}</p>
                       
-                      <div className="flex gap-2 text-xs">
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                          Available
-                        </span>
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                          Active
-                        </span>
-                      </div>
+                      <div className="flex gap-2 text-xs items-center">
+  {staff.isActive !== false ? (
+    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
+      Active
+    </span>
+  ) : (
+    <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
+      Inactive
+    </span>
+  )}
+
+  <button
+    onClick={() => toggleStaffStatus(staff._id)}
+    className={`px-2 py-1 rounded-full text-xs font-medium ${
+      staff.isActive !== false
+        ? "bg-red-100 text-red-700"
+        : "bg-green-100 text-green-700"
+    }`}
+  >
+    {staff.isActive !== false ? "Mark Inactive" : "Mark Active"}
+  </button>
+</div>
                     </motion.div>
                   ))}
                 </div>
