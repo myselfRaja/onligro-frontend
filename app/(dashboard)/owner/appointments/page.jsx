@@ -269,7 +269,7 @@ function Section({ title, icon: Icon, data, getStatus, getStatusIcon, getStatusC
               {/* Bottom Row: Price & Staff */}
               <div className="flex justify-between items-center px-4 py-3 bg-gray-50">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-gray-900">₹{appointment.totalPrice}</span>
+                  <span className="text-sm font-bold text-gray-900">₹{appointment.finalAmount ?? appointment.totalPrice}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <User size={12} className="text-gray-400" />
@@ -317,7 +317,7 @@ function Section({ title, icon: Icon, data, getStatus, getStatusIcon, getStatusC
                 </div>
                 
                 <div className="col-span-2">
-                  <span className="text-sm font-semibold text-gray-900">₹{appointment.totalPrice}</span>
+                  <span className="text-sm font-semibold text-gray-900">  ₹{appointment.finalAmount ?? appointment.totalPrice}</span>
                 </div>
                 
                 <div className="col-span-2">

@@ -18,14 +18,18 @@ export default function TopServices() {
         );
         const result = await res.json();
         if (result.success && result.data) {
-          const maxRevenue = Math.max(...result.data.map(item => Number(item.revenue) || 0), 0);
-          const formatted = result.data.map((item) => ({
-            name: item._id || "Unknown",
-            bookings: Number(item.count) || 0,
-            revenue: Number(item.revenue) || 0,
-            revenueFormatted: `₹${(Number(item.revenue) || 0).toLocaleString()}`,
-            progress: maxRevenue > 0 ? ((Number(item.revenue) || 0) / maxRevenue) * 100 : 0,
-          }));
+        const maxBookings = Math.max(
+  ...result.data.map(item => Number(item.count) || 0),
+  0
+);
+
+const formatted = result.data.map((item) => ({
+  name: item._id || "Unknown",
+  bookings: Number(item.count) || 0,
+  progress: maxBookings > 0
+    ? ((Number(item.count) || 0) / maxBookings) * 100
+    : 0,
+}));
           setServices(formatted);
         }
       } catch (err) {
@@ -74,11 +78,11 @@ export default function TopServices() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Top Services</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Most booked services by revenue</p>
+            <p className="text-sm text-gray-500 mt-0.5">Most booked services</p>
           </div>
           <div className="flex items-center gap-1 text-xs text-gray-400">
             <TrendingUp size={14} />
-            <span>Revenue based</span>
+            <span>Booking based</span>
           </div>
         </div>
       </div>
@@ -106,7 +110,7 @@ export default function TopServices() {
                       </div>
                       <div className="flex items-center gap-3 mt-1">
                         <span className="text-xs text-gray-500">{service.bookings} bookings</span>
-                        <span className="text-xs font-medium text-gray-700">{service.revenueFormatted}</span>
+                   
                       </div>
                     </div>
                     

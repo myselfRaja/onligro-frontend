@@ -119,7 +119,7 @@ if (staffRes.ok) {
         });
 
         const todayAppointments = todayList.length;
-        const todayRevenue = todayList.reduce((sum, a) => sum + (a.totalPrice || 0), 0);
+        const todayRevenue = todayList.reduce((sum, a) => sum + (a.finalAmount ?? a.totalPrice) || 0, 0);
 
         const nextAppointment =
           all

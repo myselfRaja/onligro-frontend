@@ -252,7 +252,7 @@ export default function SuccessPage({ params, searchParams }) {
                     {/* Total Price */}
                     <div className="flex justify-between items-center pt-3 mt-3 border-t border-gray-200">
                       <span className="text-gray-800 font-bold text-lg">Total:</span>
-                      <span className="text-gray-800 font-bold text-lg">₹{appointment.totalPrice}</span>
+                      <span className="text-gray-800 font-bold text-lg">₹{appointment.finalAmount ?? appointment.totalPrice}</span>
                     </div>
                   </div>
                 ) : (

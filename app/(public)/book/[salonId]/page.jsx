@@ -22,8 +22,10 @@ export default function SalonBookingPage({ params }) {
   const [selectedServices, setSelectedServices] = useState([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [totalDuration, setTotalDuration] = useState(0);
+  const [finalAmount, setFinalAmount] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [staffList, setStaffList] = useState([]);
+  const [services, setServices] = useState([]);
 const [selectedStaff, setSelectedStaff] = useState("");
   const [customer, setCustomer] = useState({
     name: "",
@@ -61,6 +63,24 @@ const [selectedStaff, setSelectedStaff] = useState("");
   fetchStaff();
 }
   }, [salonId]);
+
+  useEffect(() => {
+  async function fetchServices() {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/public/services/${salonId}`
+    );
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setServices(data.services || []);
+    }
+  }
+
+  if (salonId) {
+    fetchServices();
+  }
+}, [salonId]);
 
   async function fetchStaff() {
   try {
@@ -103,6 +123,10 @@ const handleCreateAppointment = async () => {
     alert("Please enter your phone number.");
     return;
   }
+  if (!finalAmount || Number(finalAmount) <= 0) {
+  alert("Please enter the final amount.");
+  return;
+}
 
  const payload = {
   salonId,
@@ -113,6 +137,7 @@ const handleCreateAppointment = async () => {
   customerPhone: customer.phone,
   duration: totalDuration,
   staffId: selectedStaff || null,
+  finalAmount: Number(finalAmount),
 };
 
   try {
@@ -192,7 +217,99 @@ const handleCreateAppointment = async () => {
           setTotalDuration={setTotalDuration}
         />
 
-        {/* 2. Customer Details - Show immediately */}
+    {/* Billing Details */}
+{selectedServices.length > 0 && (
+  <div className="bg-white p-6 rounded-xl shadow-sm border">
+    <h2 className="text-xl font-semibold mb-4">
+      Billing Details
+    </h2>
+
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Final Amount Collected
+    </label>
+
+    <input
+      type="number"
+      min="0"
+      value={finalAmount}
+      onChange={(e) => setFinalAmount(e.target.value)}
+      placeholder="Enter actual amount collected"
+      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
+    />
+
+    <p className="text-sm text-gray-500 mt-2">
+      Enter the actual amount charged to the customer.
+    </p>
+  </div>
+)}
+
+{/* Booking Summary */}
+{selectedServices.length > 0 && (
+  <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg">
+    <h3 className="text-xl font-bold mb-4">
+      Booking Summary
+    </h3>
+
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="text-center">
+        <div className="text-2xl font-bold">
+          {selectedServices.length}
+        </div>
+        <div className="text-blue-100 text-sm">
+          Services Selected
+        </div>
+      </div>
+
+      <div className="text-center">
+        <div className="text-2xl font-bold">
+          {totalDuration}
+        </div>
+        <div className="text-blue-100 text-sm">
+          Total Minutes
+        </div>
+      </div>
+
+      <div className="text-center">
+        <div className="text-2xl font-bold">
+          ₹{finalAmount || 0}
+        </div>
+        <div className="text-blue-100 text-sm">
+          Final Amount
+        </div>
+      </div>
+    </div>
+
+    <div className="mt-4 pt-4 border-t border-blue-500">
+      <h4 className="font-semibold mb-2 text-blue-100">
+        Selected Services:
+      </h4>
+
+      <div className="space-y-1">
+        {selectedServices.map((serviceId) => {
+          const service = services.find(
+            (s) => s._id === serviceId
+          );
+
+          return service ? (
+            <div
+              key={serviceId}
+              className="flex justify-between text-sm"
+            >
+              <span className="text-blue-50">
+                {service.name}
+              </span>
+
+              <span className="text-blue-100">
+                ₹{service.price}
+              </span>
+            </div>
+          ) : null;
+        })}
+      </div>
+    </div>
+  </div>
+)}
+
     {/* 2. Customer Details - Show immediately */}
 <div className="bg-white p-6 rounded-lg shadow-sm border">
   <h2 className="text-xl font-semibold mb-4">Your Details</h2>
@@ -255,24 +372,7 @@ const handleCreateAppointment = async () => {
           </button>
         )}
 
-        {/* 6. Booking Summary */}
-        {(selectedServices.length > 0 || selectedDate || selectedTime) && (
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h3 className="font-semibold text-blue-800 mb-2">Booking Summary</h3>
-            {selectedServices.length > 0 && (
-              <p className="text-blue-700">Services: {selectedServices.length} selected</p>
-            )}
-            {selectedDate && (
-              <p className="text-blue-700">Date: {selectedDate}</p>
-            )}
-            {selectedTime && (
-              <p className="text-blue-700">Time: {selectedTime}</p>
-            )}
-            {totalDuration > 0 && (
-              <p className="text-blue-700">Duration: {totalDuration} minutes</p>
-            )}
-          </div>
-        )}
+      
       </div>
     </div>
   );
