@@ -7,7 +7,10 @@ import { usePathname } from "next/navigation";
 
 // ---- MAIN MENU ITEMS ----
 const menuItems = [
+  
   { name: "Dashboard", href: "/owner/dashboard", icon: "🏠" },
+   { name: "Billing", href: "/owner/billing", icon: "💳" },
+  { name: "Customers", href: "/owner/customers", icon: "👤" },
   { name: "Reports", href: "/owner/reports", icon: "📊" },
   { name: "Salon Setup", href: "/owner/salon", icon: "🏢" },
   { name: "Staff", href: "/owner/staff", icon: "👥" },
@@ -111,43 +114,34 @@ export default function Sidebar({ collapsed, setCollapsed }) {
       {/* ========================= */}
       {/* MOBILE BOTTOM NAVBAR */}
       {/* ========================= */}
-      <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0D1025] border-t border-white/10 py-2 flex justify-around text-white z-50">
+   <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0D1025] border-t border-white/10 text-white z-50 overflow-x-auto">
+  <div className="flex min-w-max px-2 py-2 gap-4">
 
-        {menuItems.slice(0, 4).map((item) => {
+    {menuItems.map((item) => {
 
-          const active = pathname.startsWith(item.href);
+      const active = pathname.startsWith(item.href);
 
-          return (
-            <Link key={item.href} href={item.href}>
+      return (
+        <Link key={item.href} href={item.href}>
+          <div
+            className={`flex flex-col items-center min-w-[70px] text-xs ${
+              active ? "text-purple-400" : "text-white/70"
+            }`}
+          >
+            <span className="text-xl">
+              {item.icon}
+            </span>
 
-              <div
-                className={`flex flex-col items-center text-xs ${
-                  active ? "text-purple-400" : "text-white/70"
-                }`}
-              >
+            <span className="truncate">
+              {item.name}
+            </span>
+          </div>
+        </Link>
+      );
+    })}
 
-                <span className="text-xl">
-                  {item.icon}
-                </span>
-
-                {item.name.split(" ")[0]}
-
-              </div>
-
-            </Link>
-          );
-        })}
-
-        {/* More Button */}
-        <button
-          onClick={() => setMobileMenuOpen(true)}
-          className="flex flex-col items-center text-xs text-white/70"
-        >
-          <span className="text-xl">⋮</span>
-          More
-        </button>
-
-      </div>
+  </div>
+</div>
 
       {/* ========================= */}
       {/* MOBILE FULL MENU DRAWER */}
