@@ -78,11 +78,13 @@ const formatted = result.data.map((item) => ({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Top Services</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Most booked services</p>
+    <p className="text-sm text-gray-500 mt-0.5">
+  Most billed services
+</p>
           </div>
           <div className="flex items-center gap-1 text-xs text-gray-400">
             <TrendingUp size={14} />
-            <span>Booking based</span>
+           <span>Bill based</span>
           </div>
         </div>
       </div>
@@ -109,7 +111,9 @@ const formatted = result.data.map((item) => ({
                         {RankIcon && <RankIcon size={14} className={rank.text} />}
                       </div>
                       <div className="flex items-center gap-3 mt-1">
-                        <span className="text-xs text-gray-500">{service.bookings} bookings</span>
+                       <span className="text-xs text-gray-500">
+  {service.bookings} times billed
+</span>
                    
                       </div>
                     </div>
@@ -136,9 +140,12 @@ const formatted = result.data.map((item) => ({
 
         {/* Footer */}
         <div className="mt-6 pt-4 border-t border-gray-100">
-          <p className="text-xs text-gray-500">
-            Top performer: <span className="font-medium text-gray-700">{services[0]?.name}</span>
-          </p>
+     <p className="text-xs text-gray-500">
+  Most billed service:{" "}
+  <span className="font-medium text-gray-700">
+    {services[0]?.name}
+  </span>
+</p>
         </div>
       </div>
     </div>

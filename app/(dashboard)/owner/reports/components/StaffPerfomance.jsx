@@ -68,7 +68,9 @@ export default function StaffPerformance() {
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-white">
         <h2 className="text-lg font-semibold text-gray-900">Staff Performance</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Revenue by team member</p>
+       <p className="text-sm text-gray-500 mt-0.5">
+  Bill revenue by staff
+</p>
       </div>
 
       {/* Staff List */}
@@ -92,11 +94,17 @@ export default function StaffPerformance() {
                       <h3 className="font-semibold text-gray-900">{s.name}</h3>
                       {index === 0 && <Crown size={14} className="text-yellow-500" />}
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-sm">
-                      <span className="text-gray-600">{s.bookings} bookings</span>
-                      <span className="text-gray-300">|</span>
-                      <span className="text-gray-600">₹{s.revenue.toLocaleString()}</span>
-                    </div>
+                   <div className="flex items-center gap-3 mt-1 text-sm">
+  <span className="text-gray-600">
+    {s.bookings} bills
+  </span>
+
+  <span className="text-gray-300">|</span>
+
+  <span className="text-gray-600">
+    ₹{s.revenue.toLocaleString()}
+  </span>
+</div>
                   </div>
                 </div>
                 
@@ -124,7 +132,7 @@ export default function StaffPerformance() {
       {staff.length > 0 && (
         <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
           <p className="text-xs text-gray-600">
-            🏆 Top performer: {staff[0]?.name} • ₹{staff[0]?.revenue.toLocaleString()} revenue
+          🏆 Highest bill revenue: {staff[0]?.name} • ₹{staff[0]?.revenue.toLocaleString()}
           </p>
         </div>
       )}

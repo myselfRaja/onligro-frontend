@@ -58,14 +58,14 @@ export default function PeakHours() {
       color: "text-orange-600",
       bgColor: "bg-orange-50",
     },
-    {
-      title: "Busiest Day",
-      value: data.busiestDay,
-      subtitle: "Most appointments",
-      icon: Calendar,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-    },
+   {
+  title: "Busiest Day",
+  value: data.busiestDay,
+  subtitle: "Most bill activity",
+  icon: Calendar,
+  color: "text-blue-600",
+  bgColor: "bg-blue-50",
+},
     {
       title: "Slow Hours",
       value: data.slowHours,
@@ -84,7 +84,9 @@ export default function PeakHours() {
           <Zap size={18} className="text-yellow-500" />
           <h2 className="text-lg font-semibold text-gray-900">Peak Hours</h2>
         </div>
-        <p className="text-sm text-gray-500 mt-0.5">Customer traffic insights</p>
+      <p className="text-sm text-gray-500 mt-0.5">
+  Customer visit patterns
+</p>
       </div>
 
       {/* Cards Grid */}

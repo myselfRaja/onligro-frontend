@@ -1,30 +1,30 @@
 "use client";
 
-import { Calendar, TrendingUp, Repeat, ArrowUpRight, Sparkles, IndianRupee } from "lucide-react";
+import { Calendar, Repeat, ArrowUpRight, Sparkles, IndianRupee } from "lucide-react";
 
 export default function ReportsSummaryCards({ summary }) {
   const cards = [
     {
       title: "Total Revenue",
       value: `₹${summary?.totalRevenue?.toLocaleString() || 0}`,
-      subtitle: "This month",
+      subtitle: "Sales this period",
   
       icon: IndianRupee,
       gradient: "from-emerald-500 to-teal-500",
       bgGradient: "from-emerald-50 to-teal-50",
     },
     {
-      title: "Appointments",
-      value: summary?.totalBookings || 0,
-      subtitle: "Completed services",
+      title: "Bill Created",
+     value: summary?.totalBills || 0,
+      subtitle: "Completed bills",
       icon: Calendar,
       gradient: "from-blue-500 to-indigo-500",
       bgGradient: "from-blue-50 to-indigo-50",
     },
     {
-      title: "Average Booking",
-      value: `₹${summary?.avgBookingValue?.toLocaleString() || 0}`,
-      subtitle: "Per visit",
+      title: "Average Bill Value",
+     value: `₹${summary?.avgBillValue?.toLocaleString() || 0}`,
+      subtitle: "Average customer spend",
       icon: IndianRupee,
       gradient: "from-violet-500 to-purple-500",
       bgGradient: "from-violet-50 to-purple-50",
@@ -32,7 +32,7 @@ export default function ReportsSummaryCards({ summary }) {
     {
       title: "Repeat Customers",
       value: `${summary?.repeatCustomerPercentage || 0}%`,
-      subtitle: "Loyal clients",
+      subtitle: "Returning customers",
       icon: Repeat,
       gradient: "from-rose-500 to-pink-500",
       bgGradient: "from-rose-50 to-pink-50",

@@ -472,6 +472,7 @@ useEffect(() => {
                       type="number"
                       value={form.finalAmount}
                       onChange={(e) => setForm({ ...form, finalAmount: e.target.value })}
+                       onWheel={(e) => e.target.blur()}
                       className="w-full px-4 py-3 rounded-xl border-2 border-blue-300 focus:ring-2 focus:ring-blue-500 text-lg font-bold"
                       placeholder="Enter final amount"
                       required

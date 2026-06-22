@@ -13,12 +13,12 @@ export default function ReportsPage() {
 
   const router = useRouter();
 
-  const [summary, setSummary] = useState({
-    totalRevenue: 0,
-    totalBookings: 0,
-    avgBookingValue: 0,
-    repeatCustomerPercentage: 0,
-  });
+const [summary, setSummary] = useState({
+  totalRevenue: 0,
+  totalBills: 0,
+  avgBillValue: 0,
+  repeatCustomerPercentage: 0,
+});
 
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +77,7 @@ export default function ReportsPage() {
       }
 
       const result = await res.json();
-
+ console.log("SUMMARY API:", result);
       if (result.success) {
         setSummary(result.summary);
       }

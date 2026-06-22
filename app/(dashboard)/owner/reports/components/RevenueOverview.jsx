@@ -109,11 +109,11 @@ export default function RevenueOverview() {
                   <TrendingUp size={18} className="text-white" />
                 </div>
                 <h2 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                  Revenue Analytics
+                  Sales Analytics
                 </h2>
                 <Sparkles size={14} className="text-amber-400" />
               </div>
-              <p className="text-sm text-gray-500 ml-9">Track your daily earnings performance</p>
+              <p className="text-sm text-gray-500 ml-9">Track your daily billing performance</p>
             </div>
             
             {/* Stats Cards */}
@@ -123,11 +123,11 @@ export default function RevenueOverview() {
                 <p className="text-xl font-bold text-emerald-700">₹{totalRevenue.toLocaleString()}</p>
               </div>
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl px-4 py-2">
-                <p className="text-xs text-blue-600 font-medium">Daily Average</p>
+                <p className="text-xs text-blue-600 font-medium">Average Daily Sales</p>
                 <p className="text-xl font-bold text-blue-700">₹{avgRevenue.toLocaleString()}</p>
               </div>
               <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl px-4 py-2">
-                <p className="text-xs text-amber-600 font-medium">Peak Day</p>
+                <p className="text-xs text-amber-600 font-medium">Best Sales Day</p>
                 <p className="text-xl font-bold text-amber-700">₹{maxRevenue.toLocaleString()}</p>
                 <p className="text-[10px] text-amber-500">{maxDay}</p>
               </div>
@@ -223,7 +223,7 @@ export default function RevenueOverview() {
           <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-blue-50 to-transparent rounded-lg">
             <Calendar size={16} className="text-blue-500" />
             <div>
-              <p className="text-xs text-gray-500">Highest Revenue</p>
+              <p className="text-xs text-gray-500">Highest Sales</p>
               <p className="text-sm font-semibold text-gray-800">{maxDay} • ₹{maxRevenue.toLocaleString()}</p>
             </div>
           </div>
@@ -237,7 +237,7 @@ export default function RevenueOverview() {
           <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-amber-50 to-transparent rounded-lg">
             <IndianRupee size={16} className="text-amber-500" />
             <div>
-              <p className="text-xs text-gray-500">Monthly Projection</p>
+              <p className="text-xs text-gray-500">Estimated Monthly Revenue</p>
               <p className="text-sm font-semibold text-gray-800">₹{Math.round(avgRevenue * 30).toLocaleString()}</p>
             </div>
           </div>
@@ -246,10 +246,10 @@ export default function RevenueOverview() {
         {/* Smart Insight Message */}
         <div className="mt-4 p-3 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100">
           <p className="text-xs text-gray-700">
-            💡 <span className="font-semibold">AI Insight:</span> 
+            💡 <span className="font-semibold">Business Insight:</span> 
             {parseFloat(trend) > 10 && " Your revenue is showing strong growth momentum! 📈"}
             {parseFloat(trend) > 0 && parseFloat(trend) <= 10 && " Steady growth trend. Keep up the great work! 🎯"}
-            {parseFloat(trend) < 0 && " Consider running promotions or loyalty programs to boost revenue 💪"}
+            {parseFloat(trend) < 0 && "  Repeat customers and higher bill values can increase monthly revenue💪"}
             {parseFloat(trend) === 0 && " Revenue stable. Time to introduce new services! ✨"}
           </p>
         </div>
