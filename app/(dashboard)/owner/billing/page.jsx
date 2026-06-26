@@ -425,9 +425,60 @@ powered by Onligro`;
                     )}
                   </div>
                   
-                  {form.services.length > 0 && (
-                    <p className="text-sm text-blue-600 mt-3">✓ {form.services.length} service(s) selected</p>
-                  )}
+                {/* ✅ SELECTED SERVICES PREVIEW - ADD THIS */}
+{form.services.length > 0 && (
+  <div className="mt-4 border border-blue-200 bg-blue-50/50 rounded-xl p-3">
+    <div className="flex items-center justify-between mb-2">
+      <p className="text-sm font-medium text-blue-700">
+        📌 {form.services.length} Service{form.services.length > 1 ? 's' : ''} Selected
+      </p>
+      <button
+        type="button"
+        onClick={() => setForm({ ...form, services: [] })}
+        className="text-xs text-red-500 hover:text-red-700 font-medium"
+      >
+        Clear All
+      </button>
+    </div>
+    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+      {services
+        .filter((s) => form.services.includes(s._id))
+        .map((service) => (
+          <div
+            key={service._id}
+            className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-blue-100"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-800">
+                {service.name}
+              </span>
+              <span className="text-xs text-gray-500">₹{service.price}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setForm({
+                  ...form,
+                  services: form.services.filter((id) => id !== service._id),
+                });
+              }}
+              className="text-red-400 hover:text-red-600 transition p-1"
+              title="Remove service"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ))}
+    </div>
+    {/* Total amount in preview */}
+    <div className="border-t border-blue-200 mt-2 pt-2 flex justify-between items-center">
+      <span className="text-xs font-medium text-gray-500">Total:</span>
+      <span className="text-sm font-bold text-blue-600">₹{totalAmount}</span>
+    </div>
+  </div>
+)}
                   {!searchService && services.length > 6 && (
                     <p className="text-xs text-gray-400 mt-3">🔍 Showing 6 of {services.length} services. Search to see more.</p>
                   )}
