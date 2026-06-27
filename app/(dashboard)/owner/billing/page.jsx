@@ -8,6 +8,7 @@ export default function BillingPage() {
   const [bills, setBills] = useState([]);
   const [visibleCount, setVisibleCount] = useState(10);  // ✅ ADD THIS
 const [loadingMore, setLoadingMore] = useState(false); // ✅ ADD THIS
+const [creatingBill, setCreatingBill] = useState(false); // ✅ ADD THIS
 
   const [loading, setLoading] = useState(true);
     // ✅ Add this - Mobile device check
@@ -62,67 +63,86 @@ const [showStaffDropdown, setShowStaffDropdown] = useState(false); // ✅ ADD TH
   }, 500); // Smooth loading effect
 };
 
-  async function createBill(e) {
-    e.preventDefault();
-    
-    if (!/^\d{10}$/.test(form.customerPhone)) {
-      alert("Enter valid 10 digit phone number");
-      return;
-    }
-    
-    if (!form.finalAmount || Number(form.finalAmount) <= 0) {
-      alert("Please enter final amount");
-      return;
-    }
-
-    if (form.services.length === 0) {
-      alert("Please select at least one service");
-      return;
-    }
-
-    const billData = {
-      customerName: form.customerName,
-      customerPhone: form.customerPhone,
-      services: form.services,
-      staffId: form.staffId,
-      finalAmount: Number(form.finalAmount),
-      paymentMode: form.paymentMode,
-    };
-
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/add`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(billData),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        // ✅ Save current bill and show receipt modal
-        setCurrentBill(data.bill);
-        setShowReceiptModal(true);
-
-        // Reset form
-        setForm({
-          customerName: "",
-          customerPhone: "",
-          services: [],
-          staffId: "",
-          finalAmount: "",
-          paymentMode: "Cash",
-        });
-        setSearchService("");
-        loadData();
-      } else {
-        alert(data.message || "Failed to create bill");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong");
-    }
+async function createBill(e) {
+  e.preventDefault();
+  
+  if (creatingBill) return;
+  
+  // ✅ CUSTOMER NAME
+  if (!form.customerName || form.customerName.trim() === '') {
+    alert("👤 Please enter customer name");
+    return;
   }
+  
+  // ✅ PHONE
+  if (!/^\d{10}$/.test(form.customerPhone)) {
+    alert("📞 Enter valid 10 digit phone number");
+    return;
+  }
+  
+  // ✅ FINAL AMOUNT
+  if (!form.finalAmount || Number(form.finalAmount) <= 0) {
+    alert("💰 Please enter final amount");
+    return;
+  }
+
+  // ✅ SERVICES
+  if (form.services.length === 0) {
+    alert("💇 Please select at least one service");
+    return;
+  }
+
+  // ✅ STAFF
+  if (!form.staffId) {
+    alert("👨‍💼 Please select a staff member");
+    return;
+  }
+
+  setCreatingBill(true);
+
+  const billData = {
+    customerName: form.customerName,
+    customerPhone: form.customerPhone,
+    services: form.services,
+    staffId: form.staffId,
+    finalAmount: Number(form.finalAmount),
+    paymentMode: form.paymentMode,
+  };
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/add`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(billData),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setCurrentBill(data.bill);
+      setShowReceiptModal(true);
+
+      setForm({
+        customerName: "",
+        customerPhone: "",
+        services: [],
+        staffId: "",
+        finalAmount: "",
+        paymentMode: "Cash",
+      });
+      setSearchService("");
+      loadData();
+    } else {
+      alert(data.message || "Failed to create bill");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong");
+  } finally {
+    setCreatingBill(false);
+  }
+}
 // Close staff dropdown when clicking outside
 useEffect(() => {
   const handleClickOutside = (event) => {
@@ -602,13 +622,22 @@ powered by Onligro`;
                   </div>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={form.services.length === 0 || !form.staffId || !form.finalAmount}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-lg no-print"
-                >
-                  💾 Save & Print Bill
-                </button>
+       <button
+  type="submit"
+  disabled={
+    form.services.length === 0 ||
+    !form.staffId ||
+    !form.finalAmount ||
+    creatingBill
+  }
+  className={`w-full text-white font-semibold py-3 rounded-xl text-lg no-print transition ${
+    creatingBill || form.services.length === 0 || !form.staffId || !form.finalAmount
+      ? 'bg-gray-400 cursor-not-allowed'
+      : 'bg-blue-600 hover:bg-blue-700'
+  }`}
+>
+  {creatingBill ? 'Creating Bill...' : '💾 Save & Print Bill'}
+</button>
               </form>
             </div>
           </div>
