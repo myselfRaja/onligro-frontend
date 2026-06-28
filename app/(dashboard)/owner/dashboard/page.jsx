@@ -241,6 +241,7 @@ setCustomerInsights({
           staffMap[staff._id.toString()] = {
             name: staff.name,
             billsHandled: 0,
+              revenue: 0,  // ✅ ADD THIS
           };
         });
 
@@ -248,6 +249,7 @@ setCustomerInsights({
           const id = bill.staffId?.toString();
           if (id && staffMap[id]) {
             staffMap[id].billsHandled++;
+             staffMap[id].revenue += bill.finalAmount || 0;
           }
         });
 
