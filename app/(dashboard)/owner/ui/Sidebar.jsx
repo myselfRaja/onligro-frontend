@@ -7,9 +7,9 @@ import { usePathname } from "next/navigation";
 
 // ---- MAIN MENU ITEMS ----
 const menuItems = [
-  
   { name: "Dashboard", href: "/owner/dashboard", icon: "🏠" },
-   { name: "Billing", href: "/owner/billing", icon: "💳" },
+  { name: "Billing", href: "/owner/billing", icon: "💳" },
+  { name: "Billing History", href: "/owner/billing-history", icon: "📋" },
   { name: "Customers", href: "/owner/customers", icon: "👤" },
   { name: "Reports", href: "/owner/reports", icon: "📊" },
   { name: "Salon Setup", href: "/owner/salon", icon: "🏢" },
@@ -20,10 +20,25 @@ const menuItems = [
 ];
 
 export default function Sidebar({ collapsed, setCollapsed }) {
-
   const pathname = usePathname();
-
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // ---- FIXED: Active link detection ----
+  const isActive = (href) => {
+    // Exact match for billing and billing-history to prevent both active
+    if (href === '/owner/billing') {
+      return pathname === '/owner/billing';
+    }
+    if (href === '/owner/billing-history') {
+      return pathname === '/owner/billing-history';
+    }
+    // For other routes, check if path starts with href
+    // But avoid matching /billing when on /billing-history
+    if (href !== '/owner/billing' && href !== '/owner/billing-history') {
+      return pathname.startsWith(href);
+    }
+    return false;
+  };
 
   return (
     <>
@@ -35,10 +50,8 @@ export default function Sidebar({ collapsed, setCollapsed }) {
         transition={{ duration: 0.25 }}
         className="hidden md:flex h-screen bg-[#0D1025] text-white flex-col py-5 px-3 sticky top-0 border-r border-white/5 shadow-xl"
       >
-
         {/* Header */}
         <div className="flex items-center justify-between mb-10 px-2">
-
           {!collapsed && (
             <h2 className="text-2xl font-bold tracking-wide text-white/90">
               Onligro
@@ -64,19 +77,15 @@ export default function Sidebar({ collapsed, setCollapsed }) {
               </svg>
             </motion.div>
           </button>
-
         </div>
 
         {/* Menu */}
         <nav className="flex-1 space-y-2">
-
           {menuItems.map((item) => {
-
-            const active = pathname.startsWith(item.href);
+            const active = isActive(item.href);
 
             return (
               <Link key={item.href} href={item.href}>
-
                 <motion.div
                   whileHover={{ x: 6, scale: 1.03 }}
                   className={`
@@ -90,110 +99,70 @@ export default function Sidebar({ collapsed, setCollapsed }) {
                     }
                   `}
                 >
-
-                  <span className="text-xl">
-                    {item.icon}
-                  </span>
-
+                  <span className="text-xl">{item.icon}</span>
                   {!collapsed && (
-                    <span className="text-sm font-medium">
-                      {item.name}
-                    </span>
+                    <span className="text-sm font-medium">{item.name}</span>
                   )}
-
                 </motion.div>
-
               </Link>
             );
           })}
-
         </nav>
-
       </motion.aside>
 
       {/* ========================= */}
       {/* MOBILE BOTTOM NAVBAR */}
       {/* ========================= */}
-   <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0D1025] border-t border-white/10 text-white z-50 overflow-x-auto">
-  <div className="flex min-w-max px-2 py-2 gap-4">
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#0D1025] border-t border-white/10 text-white z-50 overflow-x-auto">
+        <div className="flex min-w-max px-2 py-2 gap-4">
+          {menuItems.map((item) => {
+            const active = isActive(item.href);
 
-    {menuItems.map((item) => {
-
-      const active = pathname.startsWith(item.href);
-
-      return (
-        <Link key={item.href} href={item.href}>
-          <div
-            className={`flex flex-col items-center min-w-[70px] text-xs ${
-              active ? "text-purple-400" : "text-white/70"
-            }`}
-          >
-            <span className="text-xl">
-              {item.icon}
-            </span>
-
-            <span className="truncate">
-              {item.name}
-            </span>
-          </div>
-        </Link>
-      );
-    })}
-
-  </div>
-</div>
+            return (
+              <Link key={item.href} href={item.href}>
+                <div
+                  className={`flex flex-col items-center min-w-[70px] text-xs ${
+                    active ? "text-purple-400" : "text-white/70"
+                  }`}
+                >
+                  <span className="text-xl">{item.icon}</span>
+                  <span className="truncate">{item.name}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
 
       {/* ========================= */}
       {/* MOBILE FULL MENU DRAWER */}
       {/* ========================= */}
       {mobileMenuOpen && (
-
         <motion.div
           initial={{ y: "100%" }}
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           className="fixed bottom-0 left-0 w-full bg-[#0D1025] text-white p-6 rounded-t-2xl z-50 shadow-2xl"
         >
-
           <div className="flex justify-between mb-4">
-
-            <h2 className="text-lg font-semibold">
-              More Options
-            </h2>
-
-            <button onClick={() => setMobileMenuOpen(false)}>
-              ✖
-            </button>
-
+            <h2 className="text-lg font-semibold">More Options</h2>
+            <button onClick={() => setMobileMenuOpen(false)}>✖</button>
           </div>
 
           <div className="space-y-3">
-
             {menuItems.map((item) => (
-
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
               >
-
                 <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/10 transition">
-
-                  <span className="text-xl">
-                    {item.icon}
-                  </span>
-
-                  <span className="text-sm">
-                    {item.name}
-                  </span>
-
+                  <span className="text-xl">{item.icon}</span>
+                  <span className="text-sm">{item.name}</span>
                 </div>
-
               </Link>
             ))}
-
           </div>
-
         </motion.div>
       )}
     </>
