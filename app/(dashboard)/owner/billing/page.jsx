@@ -2,25 +2,20 @@
 
 import { useEffect, useState, useRef } from "react";
 import { Loader } from "lucide-react";
+
 export default function BillingPage() {
+  // ===== EXISTING STATES (SAME) =====
   const [services, setServices] = useState([]);
   const [staff, setStaff] = useState([]);
   const [bills, setBills] = useState([]);
-  const [visibleCount, setVisibleCount] = useState(10);  // ✅ ADD THIS
-const [loadingMore, setLoadingMore] = useState(false); // ✅ ADD THIS
-const [creatingBill, setCreatingBill] = useState(false); // ✅ ADD THIS
-
+  const [visibleCount, setVisibleCount] = useState(10);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [creatingBill, setCreatingBill] = useState(false);
   const [loading, setLoading] = useState(true);
-    // ✅ Add this - Mobile device check
-  const isMobile = typeof navigator !== 'undefined' && 
-    /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  
   const [searchService, setSearchService] = useState("");
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [currentBill, setCurrentBill] = useState(null);
-  
   const receiptRef = useRef(null);
-
   const [form, setForm] = useState({
     customerName: "",
     customerPhone: "",
@@ -29,25 +24,38 @@ const [creatingBill, setCreatingBill] = useState(false); // ✅ ADD THIS
     finalAmount: "",
     paymentMode: "Cash",
   });
-const [showStaffDropdown, setShowStaffDropdown] = useState(false); // ✅ ADD THIS
+  const [showStaffDropdown, setShowStaffDropdown] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [serviceTotal, setServiceTotal] = useState(0);
+  const isMobile = typeof navigator !== 'undefined' && 
+    /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+  // ===== 🔥 NEW: PRODUCT STATES =====
+  const [products, setProducts] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [searchProduct, setSearchProduct] = useState("");
+  const [productTotal, setProductTotal] = useState(0);
+
+  // ===== LOAD DATA (UPDATED) =====
   async function loadData() {
-      setLoading(true); //
+    setLoading(true);
     try {
-      const [serviceRes, staffRes, billsRes] = await Promise.all([
+      const [serviceRes, staffRes, billsRes, productRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/service/all`, { credentials: "include" }),
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/all`, { credentials: "include" }),
         fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/all`, { credentials: "include" }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/all`, { credentials: "include" }), // ✅ NEW
       ]);
 
       const serviceData = await serviceRes.json();
       const staffData = await staffRes.json();
       const billsData = await billsRes.json();
+      const productData = await productRes.json(); // ✅ NEW
 
       setServices(serviceData.services || []);
       setStaff(staffData.staff || []);
       setBills(billsData.bills || []);
+      setProducts(productData.products || []); // ✅ NEW
     } catch (err) {
       console.error(err);
     } finally {
@@ -55,219 +63,168 @@ const [showStaffDropdown, setShowStaffDropdown] = useState(false); // ✅ ADD TH
     }
   }
 
-  const loadMoreBills = () => {
-  setLoadingMore(true);
-  setTimeout(() => {
-    setVisibleCount(prev => prev + 10);
-    setLoadingMore(false);
-  }, 500); // Smooth loading effect
-};
-
-async function createBill(e) {
-  e.preventDefault();
-  
-  if (creatingBill) return;
-  
-  // ✅ CUSTOMER NAME
-  if (!form.customerName || form.customerName.trim() === '') {
-    alert("👤 Please enter customer name");
-    return;
-  }
-  
-  // ✅ PHONE
-  if (!/^\d{10}$/.test(form.customerPhone)) {
-    alert("📞 Enter valid 10 digit phone number");
-    return;
-  }
-  
-  // ✅ FINAL AMOUNT
-  if (!form.finalAmount || Number(form.finalAmount) <= 0) {
-    alert("💰 Please enter final amount");
-    return;
-  }
-
-  // ✅ SERVICES
-  if (form.services.length === 0) {
-    alert("💇 Please select at least one service");
-    return;
-  }
-
-  // ✅ STAFF
-  if (!form.staffId) {
-    alert("👨‍💼 Please select a staff member");
-    return;
-  }
-
-  setCreatingBill(true);
-
-  const billData = {
-    customerName: form.customerName,
-    customerPhone: form.customerPhone,
-    services: form.services,
-    staffId: form.staffId,
-    finalAmount: Number(form.finalAmount),
-    paymentMode: form.paymentMode,
-  };
-
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/add`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(billData),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      setCurrentBill(data.bill);
-      setShowReceiptModal(true);
-
-      setForm({
-        customerName: "",
-        customerPhone: "",
-        services: [],
-        staffId: "",
-        finalAmount: "",
-        paymentMode: "Cash",
-      });
-      setSearchService("");
-      loadData();
-    } else {
-      alert(data.message || "Failed to create bill");
-    }
-  } catch (err) {
-    console.error(err);
-    alert("Something went wrong");
-  } finally {
-    setCreatingBill(false);
-  }
-}
-// Close staff dropdown when clicking outside
-useEffect(() => {
-  const handleClickOutside = (event) => {
-    if (showStaffDropdown && !event.target.closest('.staff-select-container')) {
-      setShowStaffDropdown(false);
-    }
-  };
-  document.addEventListener('click', handleClickOutside);
-  return () => document.removeEventListener('click', handleClickOutside);
-}, [showStaffDropdown]);
-  // ✅ Auto print when receipt modal opens
+  // ===== SERVICE TOTAL =====
   useEffect(() => {
-if (showReceiptModal && currentBill && receiptRef.current && !isMobile) {  // ✅ Added !isMobile
-      // Small delay to ensure DOM is ready
+    const selected = services.filter((service) => form.services.includes(service._id));
+    const total = selected.reduce((sum, service) => sum + service.price, 0);
+    setServiceTotal(total);
+  }, [form.services, services]);
+
+  // ===== 🔥 NEW: PRODUCT TOTAL =====
+  useEffect(() => {
+    const total = selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+    setProductTotal(total);
+  }, [selectedProducts]);
+
+  // ===== GRAND TOTAL =====
+  useEffect(() => {
+    setTotalAmount(serviceTotal + productTotal);
+  }, [serviceTotal, productTotal]);
+
+  // ===== LOAD MORE BILLS =====
+  const loadMoreBills = () => {
+    setLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount(prev => prev + 10);
+      setLoadingMore(false);
+    }, 500);
+  };
+
+  // ===== 🔥 NEW: CREATE BILL (UPDATED) =====
+  async function createBill(e) {
+    e.preventDefault();
+    if (creatingBill) return;
+    if (!form.customerName || form.customerName.trim() === '') {
+      alert("👤 Please enter customer name");
+      return;
+    }
+    if (!/^\d{10}$/.test(form.customerPhone)) {
+      alert("📞 Enter valid 10 digit phone number");
+      return;
+    }
+    if (!form.finalAmount || Number(form.finalAmount) <= 0) {
+      alert("💰 Please enter final amount");
+      return;
+    }
+    if (form.services.length === 0) {
+      alert("💇 Please select at least one service");
+      return;
+    }
+    if (!form.staffId) {
+      alert("👨‍💼 Please select a staff member");
+      return;
+    }
+
+    setCreatingBill(true);
+
+    const billData = {
+      customerName: form.customerName,
+      customerPhone: form.customerPhone,
+      services: form.services,
+      staffId: form.staffId,
+      finalAmount: Number(form.finalAmount),
+      paymentMode: form.paymentMode,
+      products: selectedProducts.map(p => ({   // ✅ NEW
+        productId: p.productId,
+        quantity: p.quantity
+      }))
+    };
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/add`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(billData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setCurrentBill(data.bill);
+        setShowReceiptModal(true);
+        setForm({
+          customerName: "",
+          customerPhone: "",
+          services: [],
+          staffId: "",
+          finalAmount: "",
+          paymentMode: "Cash",
+        });
+        setSelectedProducts([]); // ✅ NEW
+        setSearchService("");
+        loadData();
+      } else {
+        alert(data.message || "Failed to create bill");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    } finally {
+      setCreatingBill(false);
+    }
+  }
+
+  // ===== EXISTING FUNCTIONS (SAME) =====
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showStaffDropdown && !event.target.closest('.staff-select-container')) {
+        setShowStaffDropdown(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showStaffDropdown]);
+
+  useEffect(() => {
+    if (showReceiptModal && currentBill && receiptRef.current && !isMobile) {
       const timer = setTimeout(() => {
         const printContents = receiptRef.current.innerHTML;
         const printWindow = window.open('', '_blank');
-        
         if (printWindow) {
-          printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>Print Receipt</title>
-              <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { 
-                  font-family: 'Courier New', monospace; 
-                  padding: 10px; 
-                  width: 80mm; 
-                  margin: 0 auto; 
-                }
-                .receipt { width: 100%; }
-                .text-center { text-align: center; }
-                .border-bottom { border-bottom: 1px dashed #000; }
-                .border-top { border-top: 1px dashed #000; }
-                .flex { display: flex; }
-                .justify-between { justify-content: space-between; }
-                .mt-1 { margin-top: 4px; }
-                .mt-2 { margin-top: 8px; }
-                .mb-1 { margin-bottom: 4px; }
-                .mb-2 { margin-bottom: 8px; }
-                .pt-1 { padding-top: 4px; }
-                .pb-1 { padding-bottom: 4px; }
-                .font-bold { font-weight: bold; }
-                .font-large { font-size: 14px; }
-                .text-danger { color: #dc2626; }
-                @media print {
-                  body { margin: 0; padding: 0; }
-                }
-              </style>
-            </head>
-            <body>
-              ${printContents}
-              <script>
-                window.onload = function() {
-                  window.print();
-                  setTimeout(function() { window.close(); }, 500);
-                };
-              <\/script>
-            </body>
-            </html>
-          `);
+          printWindow.document.write(`<!DOCTYPE html><html><head><title>Print Receipt</title><style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Courier New', monospace; padding: 10px; width: 80mm; margin: 0 auto; } .flex { display: flex; } .justify-between { justify-content: space-between; } .text-center { text-align: center; } .border-bottom { border-bottom: 1px dashed #000; } .border-top { border-top: 1px dashed #000; } .font-bold { font-weight: bold; } .mt-2 { margin-top: 8px; } .mb-2 { margin-bottom: 8px; } @media print { body { margin: 0; padding: 0; } }</style></head><body>${printContents}<script>window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 500); };<\/script></body></html>`);
           printWindow.document.close();
         } else {
           alert("Please allow popups for this website to print receipts");
         }
       }, 300);
-      
       return () => clearTimeout(timer);
     }
-}, [showReceiptModal, currentBill, isMobile]);
+  }, [showReceiptModal, currentBill, isMobile]);
 
-  // ✅ Close modal after print (will be called when print window closes)
   const closeReceiptModal = () => {
     setShowReceiptModal(false);
     setCurrentBill(null);
   };
 
-  // ✅ Manual print button handler
   const manualPrint = () => {
     if (receiptRef.current) {
       const printContents = receiptRef.current.innerHTML;
       const printWindow = window.open('', '_blank');
       if (printWindow) {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Print Receipt</title>
-            <style>
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: 'Courier New', monospace; padding: 10px; width: 80mm; margin: 0 auto; }
-              .flex { display: flex; }
-              .justify-between { justify-content: space-between; }
-              .text-center { text-align: center; }
-              .border-bottom { border-bottom: 1px dashed #000; }
-              .border-top { border-top: 1px dashed #000; }
-              .font-bold { font-weight: bold; }
-              .mt-2 { margin-top: 8px; }
-              .mb-2 { margin-bottom: 8px; }
-              @media print { body { margin: 0; padding: 0; } }
-            </style>
-          </head>
-          <body>${printContents}<script>window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 500); };<\/script></body>
-          </html>
-        `);
+        printWindow.document.write(`<!DOCTYPE html><html><head><title>Print Receipt</title><style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Courier New', monospace; padding: 10px; width: 80mm; margin: 0 auto; } .flex { display: flex; } .justify-between { justify-content: space-between; } .text-center { text-align: center; } .border-bottom { border-bottom: 1px dashed #000; } .border-top { border-top: 1px dashed #000; } .font-bold { font-weight: bold; } .mt-2 { margin-top: 8px; } .mb-2 { margin-bottom: 8px; } @media print { body { margin: 0; padding: 0; } }</style></head><body>${printContents}<script>window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 500); };<\/script></body></html>`);
         printWindow.document.close();
       }
     }
   };
 
-    // ✅ WhatsApp Share Function
-const shareOnWhatsApp = () => {
+  const shareOnWhatsApp = () => {
   if (!currentBill) return;
 
-  const salonName =
-    currentBill.salonId?.name || "Salon";
+  const salonName = currentBill.salonId?.name || "Salon";
+  const salonAddress = currentBill.salonId?.address || "";
 
-  const salonAddress =
-    currentBill.salonId?.address || "";
-
+  // ===== SERVICES LIST =====
   const servicesList = currentBill.services
     .map((s) => `${s.serviceName} - ₹${s.price}`)
     .join("\n");
+
+  // ===== 🔥 PRODUCTS LIST (NEW) =====
+  const productsList = currentBill.products?.length > 0
+    ? currentBill.products
+        .map((p) => `${p.productName || p.name || "Product"} × ${p.quantity} - ₹${p.total || p.price * p.quantity}`)
+        .join("\n")
+    : "No products";
 
   const discountAmount = Math.max(
     0,
@@ -292,6 +249,10 @@ Staff: ${currentBill.staffName}
 Services:
 ${servicesList}
 
+Products:
+${productsList}
+
+--------------------------------
 Subtotal: ₹${currentBill.totalAmount}
 Discount: ₹${discountAmount}
 Total: ₹${currentBill.finalAmount}
@@ -299,39 +260,25 @@ Paid By: ${currentBill.paymentMode}
 Status: Paid ✅
 
 Thank you! Visit again
-powered by Onligro`;
+📱 Bill generated via Onligro`;
 
   const encodedMessage = encodeURIComponent(message);
-
   const phone = currentBill.customerPhone || "";
 
   if (phone) {
-    window.open(
-      `https://wa.me/91${phone}?text=${encodedMessage}`,
-      "_blank"
-    );
+    window.open(`https://wa.me/91${phone}?text=${encodedMessage}`, "_blank");
   } else {
     alert("Customer phone number not available");
   }
 };
+
   const displayedServices = searchService 
     ? services.filter(service => service.name.toLowerCase().includes(searchService.toLowerCase()))
     : services.slice(0, 6);
 
-  useEffect(() => {
-    const selected = services.filter((service) => form.services.includes(service._id));
-    const total = selected.reduce((sum, service) => sum + service.price, 0);
-    setTotalAmount(total);
-  }, [form.services, services]);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const groupBillsByDate = () => {
     const today = new Date().toDateString();
     const yesterday = new Date(Date.now() - 86400000).toDateString();
-    
     const groups = { today: [], yesterday: [], older: [] };
     bills.forEach(bill => {
       const billDate = new Date(bill.createdAt).toDateString();
@@ -344,7 +291,11 @@ powered by Onligro`;
 
   const groupedBills = groupBillsByDate();
 
-   if (loading) {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -355,7 +306,15 @@ powered by Onligro`;
     );
   }
 
-  return (
+  // ================================================================
+  // ===== YAHAN SE RETURN STARTS (APNA EXISTING RETURN PASTE KARO) =====
+  // ================================================================
+
+  // ================================================================
+  // ===== YAHAN SE RETURN STARTS (APNA EXISTING RETURN PASTE KARO) =====
+  // ================================================================
+
+ return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         
@@ -374,351 +333,195 @@ powered by Onligro`;
                 <div className="grid md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
-                    <input
-                      type="text"
-                      value={form.customerName}
-                      onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter customer name"
-                      required
-                    />
+                    <input type="text" value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500" placeholder="Enter customer name" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
-                    <input
-                      type="tel"
-                      value={form.customerPhone}
-                      onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                      placeholder="10 digit mobile number"
-                      required
-                    />
+                    <input type="tel" value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500" placeholder="10 digit mobile number" required />
                   </div>
                 </div>
 
+                {/* ===== SERVICES SECTION ===== */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">Select Services</label>
-                  
                   <div className="relative mb-4">
-                    <input
-                      type="text"
-                      placeholder="🔍 Search services..."
-                      value={searchService}
-                      onChange={(e) => setSearchService(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 pl-10"
-                    />
+                    <input type="text" placeholder="🔍 Search services..." value={searchService} onChange={(e) => setSearchService(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 pl-10" />
                     <span className="absolute left-3 top-3 text-gray-400">🔍</span>
-                    {searchService && (
-                      <button type="button" onClick={() => setSearchService("")} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
-                        ✕
-                      </button>
-                    )}
+                    {searchService && (<button type="button" onClick={() => setSearchService("")} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">✕</button>)}
                   </div>
-
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-80 overflow-y-auto">
-                    {displayedServices.length === 0 ? (
-                      <div className="col-span-full text-center text-gray-400 py-8">No services found</div>
-                    ) : (
+                    {displayedServices.length === 0 ? (<div className="col-span-full text-center text-gray-400 py-8">No services found</div>) : (
                       displayedServices.map((service) => (
-                        <button
-                          key={service._id}
-                          type="button"
-                          onClick={() => {
-                            if (form.services.includes(service._id)) {
-                              setForm({ ...form, services: form.services.filter(id => id !== service._id) });
-                            } else {
-                              setForm({ ...form, services: [...form.services, service._id] });
-                            }
-                          }}
-                          className={`p-3 rounded-xl text-left transition-all ${
-                            form.services.includes(service._id)
-                              ? 'bg-blue-600 text-white shadow-md'
-                              : 'bg-gray-50 border-2 border-gray-200 hover:border-blue-300'
-                          }`}
-                        >
+                        <button key={service._id} type="button" onClick={() => {
+                          if (form.services.includes(service._id)) {
+                            setForm({ ...form, services: form.services.filter(id => id !== service._id) });
+                          } else {
+                            setForm({ ...form, services: [...form.services, service._id] });
+                          }
+                        }} className={`p-3 rounded-xl text-left transition-all ${form.services.includes(service._id) ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 border-2 border-gray-200 hover:border-blue-300'}`}>
                           <div className="font-medium">{service.name}</div>
-                          <div className={`text-sm mt-1 ${form.services.includes(service._id) ? 'text-blue-100' : 'text-blue-600'}`}>
-                            ₹{service.price}
-                          </div>
+                          <div className={`text-sm mt-1 ${form.services.includes(service._id) ? 'text-blue-100' : 'text-blue-600'}`}>₹{service.price}</div>
                         </button>
                       ))
                     )}
                   </div>
-                  
-                {/* ✅ SELECTED SERVICES PREVIEW - ADD THIS */}
-{form.services.length > 0 && (
-  <div className="mt-4 border border-blue-200 bg-blue-50/50 rounded-xl p-3">
-    <div className="flex items-center justify-between mb-2">
-      <p className="text-sm font-medium text-blue-700">
-        📌 {form.services.length} Service{form.services.length > 1 ? 's' : ''} Selected
-      </p>
-      <button
-        type="button"
-        onClick={() => setForm({ ...form, services: [] })}
-        className="text-xs text-red-500 hover:text-red-700 font-medium"
-      >
-        Clear All
-      </button>
-    </div>
-    <div className="space-y-1.5 max-h-40 overflow-y-auto">
-      {services
-        .filter((s) => form.services.includes(s._id))
-        .map((service) => (
-          <div
-            key={service._id}
-            className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-blue-100"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-800">
-                {service.name}
-              </span>
-              <span className="text-xs text-gray-500">₹{service.price}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setForm({
-                  ...form,
-                  services: form.services.filter((id) => id !== service._id),
-                });
-              }}
-              className="text-red-400 hover:text-red-600 transition p-1"
-              title="Remove service"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        ))}
-    </div>
-    {/* Total amount in preview */}
-    <div className="border-t border-blue-200 mt-2 pt-2 flex justify-between items-center">
-      <span className="text-xs font-medium text-gray-500">Total:</span>
-      <span className="text-sm font-bold text-blue-600">₹{totalAmount}</span>
-    </div>
-  </div>
-)}
-                  {!searchService && services.length > 6 && (
-                    <p className="text-xs text-gray-400 mt-3">🔍 Showing 6 of {services.length} services. Search to see more.</p>
+                  {form.services.length > 0 && (
+                    <div className="mt-4 border border-blue-200 bg-blue-50/50 rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-medium text-blue-700">📌 {form.services.length} Service{form.services.length > 1 ? 's' : ''} Selected</p>
+                        <button type="button" onClick={() => setForm({ ...form, services: [] })} className="text-xs text-red-500 hover:text-red-700 font-medium">Clear All</button>
+                      </div>
+                      {services.filter((s) => form.services.includes(s._id)).map((service) => (
+                        <div key={service._id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-blue-100 mb-1">
+                          <span className="text-sm font-medium text-gray-800">{service.name} - ₹{service.price}</span>
+                          <button type="button" onClick={() => setForm({ ...form, services: form.services.filter((id) => id !== service._id) })} className="text-red-400 hover:text-red-600">✕</button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
 
+                {/* ===== 🔥 NEW: PRODUCTS SECTION ===== */}
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">🛒 Products (Optional)</label>
+                  <div className="relative mb-3">
+                    <input type="text" placeholder="🔍 Search products..." value={searchProduct} onChange={(e) => setSearchProduct(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 pl-10" />
+                    <span className="absolute left-3 top-3 text-gray-400">🔍</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-48 overflow-y-auto">
+                    {products.filter(p => p.stockQuantity > 0 && p.name.toLowerCase().includes(searchProduct.toLowerCase())).slice(0, 12).map((product) => {
+                      const isSelected = selectedProducts.find(p => p.productId === product._id);
+                      return (
+                        <button key={product._id} type="button" onClick={() => {
+                          if (isSelected) {
+                            setSelectedProducts(selectedProducts.filter(p => p.productId !== product._id));
+                          } else {
+                            setSelectedProducts([...selectedProducts, { productId: product._id, name: product.name, price: product.mrp, quantity: 1, stock: product.stockQuantity }]);
+                          }
+                        }} className={`p-2 rounded-xl text-left transition-all text-sm ${isSelected ? 'bg-green-600 text-white shadow-md' : 'bg-gray-50 border-2 border-gray-200 hover:border-green-300'}`}>
+                          <div className="font-medium">{product.name}</div>
+                          <div className={`text-xs ${isSelected ? 'text-green-100' : 'text-gray-500'}`}>₹{product.mrp} | Stock: {product.stockQuantity}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedProducts.length > 0 && (
+                    <div className="mt-3 border border-green-200 bg-green-50/50 rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-medium text-green-700">📦 {selectedProducts.length} Product{selectedProducts.length > 1 ? 's' : ''} Selected</p>
+                        <button type="button" onClick={() => setSelectedProducts([])} className="text-xs text-red-500 hover:text-red-700 font-medium">Clear All</button>
+                      </div>
+                      {selectedProducts.map((p) => (
+                        <div key={p.productId} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100 mb-1">
+                          <span className="text-sm font-medium text-gray-800 flex-1">{p.name}</span>
+                          <span className="text-xs text-gray-500 mx-2">₹{p.price}</span>
+                          <input type="number" value={p.quantity} onChange={(e) => { const qty = Math.max(1, parseInt(e.target.value) || 1); setSelectedProducts(selectedProducts.map(sp => sp.productId === p.productId ? { ...sp, quantity: qty } : sp)); }} className="w-12 px-1 py-0.5 border border-gray-200 rounded text-xs text-center" min="1" max={p.stock} />
+                          <button type="button" onClick={() => setSelectedProducts(selectedProducts.filter(sp => sp.productId !== p.productId))} className="text-red-400 hover:text-red-600 ml-2">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* ===== STAFF + PAYMENT ===== */}
                 <div className="grid md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Assign Staff *</label>
-               {/* Staff Selection - Beautiful Custom Dropdown */}
-<div className="relative">
- 
-  
-  {/* Custom Dropdown Button */}
-  <button
-    type="button"
-    onClick={() => setShowStaffDropdown(!showStaffDropdown)}
-    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-left flex items-center justify-between"
-  >
-    <span className={form.staffId ? "text-gray-800" : "text-gray-400"}>
-      {form.staffId 
-        ? staff.find(m => m._id === form.staffId)?.name 
-        : "Select staff member"}
-    </span>
-    <svg 
-      className={`w-4 h-4 text-gray-400 transition-transform ${showStaffDropdown ? 'rotate-180' : ''}`}
-      fill="none" 
-      stroke="currentColor" 
-      viewBox="0 0 24 24"
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-    </svg>
-  </button>
-  
-  {/* Dropdown Options */}
-  {showStaffDropdown && (
-    <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-      <button
-        type="button"
-        onClick={() => {
-          setForm({ ...form, staffId: "" });
-          setShowStaffDropdown(false);
-        }}
-        className="w-full px-4 py-3 text-left hover:bg-gray-50 transition border-b border-gray-100 text-gray-400"
-      >
-        Select staff member
-      </button>
-      {staff.map((member) => (
-        <button
-          key={member._id}
-          type="button"
-          onClick={() => {
-            setForm({ ...form, staffId: member._id });
-            setShowStaffDropdown(false);
-          }}
-          className={`w-full px-4 py-3 text-left hover:bg-blue-50 transition flex items-center justify-between ${
-            form.staffId === member._id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-          }`}
-        >
-          <div>
-            <p className="font-medium">{member.name}</p>
-            <p className="text-xs text-gray-400">{member.role || 'Staff'}</p>
-          </div>
-          {form.staffId === member._id && (
-            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-        </button>
-      ))}
-    </div>
-  )}
-</div>
+                    <div className="relative staff-select-container">
+                      <button type="button" onClick={() => setShowStaffDropdown(!showStaffDropdown)} className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-left flex items-center justify-between">
+                        <span className={form.staffId ? "text-gray-800" : "text-gray-400"}>{form.staffId ? staff.find(m => m._id === form.staffId)?.name : "Select staff member"}</span>
+                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${showStaffDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                      {showStaffDropdown && (
+                        <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                          <button type="button" onClick={() => { setForm({ ...form, staffId: "" }); setShowStaffDropdown(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 transition border-b border-gray-100 text-gray-400">Select staff member</button>
+                          {staff.map((member) => (
+                            <button key={member._id} type="button" onClick={() => { setForm({ ...form, staffId: member._id }); setShowStaffDropdown(false); }} className={`w-full px-4 py-3 text-left hover:bg-blue-50 transition flex items-center justify-between ${form.staffId === member._id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}`}>
+                              <div><p className="font-medium">{member.name}</p><p className="text-xs text-gray-400">{member.role || 'Staff'}</p></div>
+                              {form.staffId === member._id && (<svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>)}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Payment Mode *</label>
                     <div className="flex gap-3">
                       {['Cash', 'UPI', 'Card'].map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => setForm({ ...form, paymentMode: mode })}
-                          className={`flex-1 py-2.5 rounded-xl font-medium transition-all ${
-                            form.paymentMode === mode
-                              ? 'bg-blue-600 text-white shadow-md'
-                              : 'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-blue-300'
-                          }`}
-                        >
-                          {mode}
-                        </button>
+                        <button key={mode} type="button" onClick={() => setForm({ ...form, paymentMode: mode })} className={`flex-1 py-2.5 rounded-xl font-medium transition-all ${form.paymentMode === mode ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-blue-300'}`}>{mode}</button>
                       ))}
                     </div>
                   </div>
                 </div>
 
+                {/* ===== FINAL AMOUNT (UPDATED WITH PRODUCT TOTAL) ===== */}
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <div className="flex justify-between items-center mb-3">
+                  <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-600">Service Total:</span>
-                    <span className="text-xl font-bold text-gray-800">₹{totalAmount}</span>
+                    <span className="text-lg font-bold text-gray-800">₹{serviceTotal}</span>
                   </div>
-                  
-                  <div className="border-t pt-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-600">Product Total:</span>
+                    <span className="text-lg font-bold text-gray-800">₹{productTotal}</span>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between items-center">
+                    <span className="text-gray-600 font-medium">Subtotal:</span>
+                    <span className="text-xl font-bold text-blue-600">₹{totalAmount}</span>
+                  </div>
+                  <div className="border-t pt-3 mt-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Final Amount *</label>
-                    <input
-                      type="number"
-                      value={form.finalAmount}
-                      onChange={(e) => setForm({ ...form, finalAmount: e.target.value })}
-                       onWheel={(e) => e.target.blur()}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-blue-300 focus:ring-2 focus:ring-blue-500 text-lg font-bold"
-                      placeholder="Enter final amount"
-                      required
-                    />
+                    <input type="number" value={form.finalAmount} onChange={(e) => setForm({ ...form, finalAmount: e.target.value })} onWheel={(e) => e.target.blur()} className="w-full px-4 py-3 rounded-xl border-2 border-blue-300 focus:ring-2 focus:ring-blue-500 text-lg font-bold" placeholder="Enter final amount" required />
                     {totalAmount > 0 && form.finalAmount && (
                       <p className={`text-sm mt-2 ${Number(form.finalAmount) > totalAmount ? 'text-orange-500' : 'text-green-600'}`}>
-                        {Number(form.finalAmount) > totalAmount 
-                          ? `⚠️ Extra charges: ₹${Number(form.finalAmount) - totalAmount} added` 
-                          : Number(form.finalAmount) < totalAmount 
-                          ? `💸 Discount given: ₹${totalAmount - Number(form.finalAmount)}` 
-                          : `✓ Exact amount`}
+                        {Number(form.finalAmount) > totalAmount ? `⚠️ Extra charges: ₹${Number(form.finalAmount) - totalAmount} added` : Number(form.finalAmount) < totalAmount ? `💸 Discount given: ₹${totalAmount - Number(form.finalAmount)}` : `✓ Exact amount`}
                       </p>
                     )}
                   </div>
                 </div>
 
-       <button
-  type="submit"
-  disabled={
-    form.services.length === 0 ||
-    !form.staffId ||
-    !form.finalAmount ||
-    creatingBill
-  }
-  className={`w-full text-white font-semibold py-3 rounded-xl text-lg no-print transition ${
-    creatingBill || form.services.length === 0 || !form.staffId || !form.finalAmount
-      ? 'bg-gray-400 cursor-not-allowed'
-      : 'bg-blue-600 hover:bg-blue-700'
-  }`}
->
-  {creatingBill ? 'Creating Bill...' : '💾 Save & Print Bill'}
-</button>
+                <button type="submit" disabled={form.services.length === 0 || !form.staffId || !form.finalAmount || creatingBill} className={`w-full text-white font-semibold py-3 rounded-xl text-lg no-print transition ${creatingBill || form.services.length === 0 || !form.staffId || !form.finalAmount ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}>
+                  {creatingBill ? 'Creating Bill...' : '💾 Save & Print Bill'}
+                </button>
               </form>
             </div>
           </div>
 
-          {/* Recent Bills */}
+          {/* ===== RECENT BILLS ===== */}
           <div>
-           {/* Recent Bills Section */}
-<div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-6">
-  <div className="flex items-center justify-between mb-4">
-    <h2 className="text-xl font-semibold text-gray-800">📋 Recent Bills</h2>
-    <span className="text-xs text-gray-400">{bills.length} total</span>
-  </div>
-  
-  <div className="space-y-3 max-h-[600px] overflow-y-auto">
-    {bills.length === 0 ? (
-      <p className="text-center text-gray-400 py-8">No bills yet</p>
-    ) : (
-      <>
-        {/* Show only visibleCount bills */}
-        {bills.slice(0, visibleCount).map((bill) => (
-          <div key={bill._id} className="border border-gray-100 rounded-xl p-3 hover:shadow-md transition-all">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <p className="font-semibold text-gray-900">{bill.customerName}</p>
-                <p className="text-xs text-gray-500">{bill.billNumber}</p>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">📋 Recent Bills</h2>
+                <span className="text-xs text-gray-400">{bills.length} total</span>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                bill.paymentMode === 'Cash' ? 'bg-green-100 text-green-700' :
-                bill.paymentMode === 'UPI' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-              }`}>
-                {bill.paymentMode}
-              </span>
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                {bills.length === 0 ? (<p className="text-center text-gray-400 py-8">No bills yet</p>) : (
+                  <>
+                    {bills.slice(0, visibleCount).map((bill) => (
+                      <div key={bill._id} className="border border-gray-100 rounded-xl p-3 hover:shadow-md transition-all">
+                        <div className="flex justify-between items-start mb-2">
+                          <div><p className="font-semibold text-gray-900">{bill.customerName}</p><p className="text-xs text-gray-500">{bill.billNumber}</p></div>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${bill.paymentMode === 'Cash' ? 'bg-green-100 text-green-700' : bill.paymentMode === 'UPI' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{bill.paymentMode}</span>
+                        </div>
+                        <div className="flex justify-between items-center"><p className="text-sm text-gray-600">{bill.staffName}</p><p className="text-lg font-bold text-blue-600">₹{bill.finalAmount}</p></div>
+                        <p className="text-xs text-gray-400 mt-1">{new Date(bill.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    ))}
+                    {visibleCount < bills.length && (
+                      <div className="pt-2"><button onClick={loadMoreBills} disabled={loadingMore} className="w-full py-3 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 transition-all duration-200 flex items-center justify-center gap-2">
+                        {loadingMore ? (<><div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>Loading...</>) : (<><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>Load More ({bills.length - visibleCount} remaining)</>)}
+                      </button></div>
+                    )}
+                    <p className="text-center text-xs text-gray-400 pt-2">Showing {Math.min(visibleCount, bills.length)} of {bills.length} bills</p>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-gray-600">{bill.staffName}</p>
-              <p className="text-lg font-bold text-blue-600">₹{bill.finalAmount}</p>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              {new Date(bill.createdAt).toLocaleDateString()}
-            </p>
-          </div>
-        ))}
-        
-        {/* Load More Button - Beautiful Design */}
-        {visibleCount < bills.length && (
-          <div className="pt-2">
-            <button
-              onClick={loadMoreBills}
-              disabled={loadingMore}
-              className="w-full py-3 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              {loadingMore ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                  Load More ({bills.length - visibleCount} remaining)
-                </>
-              )}
-            </button>
-          </div>
-        )}
-        
-        {/* Showing info */}
-        <p className="text-center text-xs text-gray-400 pt-2">
-          Showing {Math.min(visibleCount, bills.length)} of {bills.length} bills
-        </p>
-      </>
-    )}
-  </div>
-</div>
           </div>
         </div>
       </div>
 
-      {/* ✅ Receipt Modal - SAME PAGE, NO REDIRECT */}
+      {/* ===== RECEIPT MODAL ===== */}
       {showReceiptModal && currentBill && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 no-print">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4">
@@ -726,21 +529,9 @@ powered by Onligro`;
               <h2 className="text-xl font-bold">🧾 Receipt Ready</h2>
               <button onClick={closeReceiptModal} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
             </div>
-            
-            {/* Hidden receipt for printing */}
             <div ref={receiptRef} className="print-area" style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
               <div className="receipt" style={{ padding: '10px', fontFamily: 'monospace', width: '80mm' }}>
-                {/* Header */}
-                <div className="text-center border-bottom pb-2 mb-2">
-                <h2 className="font-bold" style={{ fontSize: '16px' }}>
-   ✂️ {currentBill.salonId?.name || 'Salon Name'}
-</h2>
-<p style={{ fontSize: '10px' }}>
-  {currentBill.salonId?.address || 'Salon Address'}
-</p>
-                </div>
-
-                {/* Bill Info */}
+                <div className="text-center border-bottom pb-2 mb-2"><h2 className="font-bold" style={{ fontSize: '16px' }}>✂️ {currentBill.salonId?.name || 'Salon Name'}</h2><p style={{ fontSize: '10px' }}>{currentBill.salonId?.address || 'Salon Address'}</p></div>
                 <div style={{ fontSize: '10px', marginBottom: '8px' }}>
                   <div className="flex justify-between"><span>Bill No:</span><span className="font-bold">{currentBill.billNumber}</span></div>
                   <div className="flex justify-between"><span>Date:</span><span>{new Date(currentBill.createdAt).toLocaleString()}</span></div>
@@ -748,82 +539,25 @@ powered by Onligro`;
                   <div className="flex justify-between"><span>Phone:</span><span>{currentBill.customerPhone}</span></div>
                   <div className="flex justify-between"><span>Staff:</span><span>{currentBill.staffName}</span></div>
                 </div>
-
                 <div className="border-bottom my-1"></div>
-
-                {/* Services */}
-                <div style={{ fontSize: '10px' }}>
-                  <div className="font-bold mb-1">SERVICES</div>
-                  {currentBill.services.map((s, i) => (
-                    <div key={i} className="flex justify-between mb-1">
-                      <span>{s.serviceName}</span>
-                      <span>₹{s.price}</span>
-                    </div>
-                  ))}
-                </div>
-
+                <div style={{ fontSize: '10px' }}><div className="font-bold mb-1">SERVICES</div>{currentBill.services.map((s, i) => (<div key={i} className="flex justify-between mb-1"><span>{s.serviceName}</span><span>₹{s.price}</span></div>))}</div>
                 <div className="border-bottom my-1"></div>
-
-                {/* Totals */}
                 <div style={{ fontSize: '10px' }}>
                   <div className="flex justify-between"><span>Subtotal:</span><span>₹{currentBill.totalAmount}</span></div>
-                  {currentBill.totalAmount !== currentBill.finalAmount && (
-                    <div className="flex justify-between text-danger"><span>Discount:</span><span>-₹{currentBill.totalAmount - currentBill.finalAmount}</span></div>
-                  )}
-                  <div className="flex justify-between font-bold mt-1" style={{ fontSize: '12px' }}>
-                    <span>TOTAL:</span>
-                    <span>₹{currentBill.finalAmount}</span>
-                  </div>
+                  {currentBill.totalAmount !== currentBill.finalAmount && (<div className="flex justify-between text-danger"><span>Discount:</span><span>-₹{currentBill.totalAmount - currentBill.finalAmount}</span></div>)}
+                  <div className="flex justify-between font-bold mt-1" style={{ fontSize: '12px' }}><span>TOTAL:</span><span>₹{currentBill.finalAmount}</span></div>
                   <div className="flex justify-between mt-1"><span>Payment:</span><span>{currentBill.paymentMode}</span></div>
                 </div>
-
                 <div className="border-bottom my-2"></div>
-
-                {/* Footer */}
-                <div className="text-center" style={{ fontSize: '9px' }}>
-                  <p>✨ Thank you! Visit Again ✨</p>
-                  <p style={{ fontSize: '8px', marginTop: '4px' }}>Powered by Onligro</p>
-                </div>
+                <div className="text-center" style={{ fontSize: '9px' }}><p>✨ Thank you! Visit Again ✨</p><p style={{ fontSize: '8px', marginTop: '4px' }}>Powered by Onligro</p></div>
               </div>
             </div>
-
-            {/* Modal Actions */}
-           <div className="space-y-3">
-  {/* Message based on device */}
-  {isMobile ? (
-    <p className="text-sm text-blue-600 text-center">💡 Tap WhatsApp to share bill</p>
-  ) : (
-    <p className="text-sm text-gray-600 text-center">Print dialog will open automatically</p>
-  )}
-  
-  {/* WhatsApp Button - Show on ALL devices */}
-  <button
-    onClick={shareOnWhatsApp}
-    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition"
-  >
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-    </svg>
-    Share on WhatsApp
-  </button>
-  
-  {/* Print Button - Show only on Desktop */}
-  {!isMobile && (
-    <button
-      onClick={manualPrint}
-      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition"
-    >
-      🖨️ Print Again / Manual Print
-    </button>
-  )}
-  
-  <button
-    onClick={closeReceiptModal}
-    className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 rounded-xl"
-  >
-    Close
-  </button>
-</div>
+            <div className="space-y-3">
+              {isMobile ? (<p className="text-sm text-blue-600 text-center">💡 Tap WhatsApp to share bill</p>) : (<p className="text-sm text-gray-600 text-center">Print dialog will open automatically</p>)}
+              <button onClick={shareOnWhatsApp} className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 transition"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Share on WhatsApp</button>
+              {!isMobile && (<button onClick={manualPrint} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition">🖨️ Print Again / Manual Print</button>)}
+              <button onClick={closeReceiptModal} className="w-full border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 rounded-xl">Close</button>
+            </div>
           </div>
         </div>
       )}

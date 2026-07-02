@@ -9,7 +9,9 @@ export default function BottomNav() {
  const tabs = [
   { name: "Dashboard", href: "/owner/dashboard", icon: "🏠" },
   { name: "Billing", href: "/owner/billing", icon: "💳" },
+  {name: "Billing History", href: "/owner/billing-history", icon: "📋" },
   { name: "Customers", href: "/owner/customers", icon: "👤" },
+  {name: "Inventory", href: "/owner/inventory", icon: "📦" },
   { name: "Reports", href: "/owner/reports", icon: "📊" },
   { name: "Staff", href: "/owner/staff", icon: "👥" },
   { name: "Services", href: "/owner/services", icon: "💈" },
