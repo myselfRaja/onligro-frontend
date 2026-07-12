@@ -227,6 +227,7 @@ setCustomerInsights({
             customerName: bill.customerName || "Unknown",
             amount: bill.finalAmount || 0,
             services: bill.services?.map(s => s.serviceName) || [],
+            products: bill.products || [], 
             staffName: bill.staffName || "Staff",
             createdAt: bill.createdAt,
             paymentMode: bill.paymentMode,

@@ -228,14 +228,27 @@ export default function CustomerDetailPage() {
                         </span>
                       </div>
                       
-                      {/* Services */}
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {bill.services?.map((service, idx) => (
-                          <span key={idx} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                            {service.serviceName}
-                          </span>
-                        ))}
-                      </div>
+                     {/* ===== SERVICES ===== */}
+{bill.services?.length > 0 && (
+  <div className="flex flex-wrap gap-1.5 mt-2">
+    {bill.services?.map((service, idx) => (
+      <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+        {service.serviceName}
+      </span>
+    ))}
+  </div>
+)}
+
+{/* ===== 🔥 PRODUCTS (NEE CHE ADD KARO) ===== */}
+{bill.products?.length > 0 && (
+  <div className="flex flex-wrap gap-1.5 mt-1.5">
+    {bill.products?.map((product, idx) => (
+      <span key={idx} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+        🛒 {product.productName} × {product.quantity}
+      </span>
+    ))}
+  </div>
+)}
                       
                       {/* Staff */}
                       <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
@@ -246,9 +259,12 @@ export default function CustomerDetailPage() {
                     {/* Right Side - Amount */}
                     <div className="text-right md:text-left">
                       <p className="text-2xl font-bold text-green-600">₹{bill.finalAmount.toLocaleString()}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {bill.services?.length} service{bill.services?.length !== 1 ? 's' : ''}
-                      </p>
+                     <p className="text-xs text-gray-400 mt-1">
+  {bill.services?.length || 0} service{bill.services?.length !== 1 ? 's' : ''}
+  {bill.products?.length > 0 && (
+    <> · {bill.products?.length} product{bill.products?.length !== 1 ? 's' : ''}</>
+  )}
+</p>
                     </div>
                   </div>
                 </div>

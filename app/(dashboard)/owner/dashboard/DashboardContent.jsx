@@ -332,52 +332,63 @@ export default function DashboardContent({
                           </span>
                         </div>
 
-                        {/* Details */}
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <span className="font-medium text-gray-800">{bill.customerName}</span>
-                            <span className="text-gray-400">·</span>
-                            <span className="text-gray-600 font-semibold">₹{bill.amount}</span>
-                            <span className="text-gray-300">•</span>
-                            <span className="text-xs text-gray-500">
-                              {bill.services?.join(' + ') || 'Service'}
-                            </span>
-                            <span className="text-gray-300">•</span>
-                            <span className="text-xs text-gray-500">{bill.staffName || 'Staff'}</span>
-                          </div>
-                        </div>
+                    {/* Details */}
+<div className="flex-1">
+  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+    <span className="font-medium text-gray-800">{bill.customerName}</span>
+    <span className="text-gray-400">·</span>
+    <span className="text-gray-600 font-semibold">₹{bill.amount}</span>
+    <span className="text-gray-300">•</span>
+    <span className="text-xs text-gray-500">
+      {/* 🔥 SERVICE + PRODUCT */}
+      {bill.services?.length > 0 && bill.services.join(' + ')}
+      {bill.services?.length > 0 && bill.products?.length > 0 && ' + '}
+      {bill.products?.length > 0 && bill.products.map(p => `${p.productName} ×${p.quantity}`).join(' + ')}
+      {(!bill.services || bill.services.length === 0) && (!bill.products || bill.products.length === 0) && 'Service'}
+    </span>
+    <span className="text-gray-300">•</span>
+    <span className="text-xs text-gray-500">{bill.staffName || 'Staff'}</span>
+  </div>
+</div>
                       </div>
 
                       {/* Mobile Layout */}
-                      <div className="sm:hidden space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-800">
-                              {new Date(bill.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                              Completed
-                            </span>
-                          </div>
-                        </div>
-                        <div>
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2 text-sm flex-wrap">
-                              <span className="font-medium text-gray-800">{bill.customerName}</span>
-                              <span className="text-gray-400">·</span>
-                              <span className="text-gray-600 font-semibold">₹{bill.amount}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
-                              <span>{bill.services?.join(' + ') || 'Service'}</span>
-                              <span className="text-gray-300">•</span>
-                              <span>{bill.staffName || 'Staff'}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                     
+<div className="sm:hidden space-y-1.5">
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-2">
+      <span className="text-sm font-semibold text-gray-800">
+        {new Date(bill.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      </span>
+      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+        Completed
+      </span>
+    </div>
+  </div>
+  <div>
+    <div className="space-y-0.5">
+      <div className="flex items-center gap-2 text-sm flex-wrap">
+        <span className="font-medium text-gray-800">{bill.customerName}</span>
+        <span className="text-gray-400">·</span>
+        <span className="text-gray-600 font-semibold">₹{bill.amount}</span>
+      </div>
+      <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
+        {/* 🔥 SERVICE + PRODUCT DONO DIKHAO */}
+        <span>
+          {bill.services?.length > 0 && bill.services.join(' + ')}
+          {bill.services?.length > 0 && bill.products?.length > 0 && ' + '}
+          {bill.products?.length > 0 && bill.products.map(p => `${p.productName} ×${p.quantity}`).join(' + ')}
+          {(!bill.services || bill.services.length === 0) && (!bill.products || bill.products.length === 0) && 'Service'}
+        </span>
+        <span className="text-gray-300">•</span>
+        <span>{bill.staffName || 'Staff'}</span>
+      </div>
+    </div>
+  </div>
+</div>
                     </div>
                   ))
                 )}

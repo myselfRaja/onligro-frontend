@@ -106,8 +106,8 @@ export default function BillingPage() {
       alert("💰 Please enter final amount");
       return;
     }
-    if (form.services.length === 0) {
-      alert("💇 Please select at least one service");
+    if (form.services.length === 0 && selectedProducts.length === 0) { 
+      alert("💇 Please select at least one service or product");
       return;
     }
     if (!form.staffId) {
@@ -306,6 +306,9 @@ Thank you! Visit again
     );
   }
 
+  // 🔥 YAHAN BANAO - Return se PEHLE
+const isFormInvalid = (form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || !form.finalAmount || creatingBill;
+
   // ================================================================
   // ===== YAHAN SE RETURN STARTS (APNA EXISTING RETURN PASTE KARO) =====
   // ================================================================
@@ -479,10 +482,18 @@ Thank you! Visit again
                     )}
                   </div>
                 </div>
-
-                <button type="submit" disabled={form.services.length === 0 || !form.staffId || !form.finalAmount || creatingBill} className={`w-full text-white font-semibold py-3 rounded-xl text-lg no-print transition ${creatingBill || form.services.length === 0 || !form.staffId || !form.finalAmount ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}>
-                  {creatingBill ? 'Creating Bill...' : '💾 Save & Print Bill'}
-                </button>
+                    
+               <button 
+  type="submit" 
+  disabled={(form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || !form.finalAmount || creatingBill}
+  className={`w-full text-white font-semibold py-3 rounded-xl text-lg no-print transition ${
+    (form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || !form.finalAmount || creatingBill 
+      ? 'bg-gray-400 cursor-not-allowed' 
+      : 'bg-blue-600 hover:bg-blue-700'
+  }`}
+>
+  {creatingBill ? 'Creating Bill...' : '💾 Save & Print Bill'}
+</button>
               </form>
             </div>
           </div>

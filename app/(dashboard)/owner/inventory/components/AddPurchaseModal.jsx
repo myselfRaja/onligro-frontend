@@ -114,14 +114,14 @@ export default function AddPurchaseModal({ isOpen, onClose, onSuccess }) {
   }
 
   // Calculate totals
-  const totalItems = form.products.reduce((sum, p) => sum + p.quantity, 0);
-  const subtotal = form.products.reduce(
-    (sum, p) => sum + p.quantity * p.purchasePrice,
-    0
-  );
-  const tax = subtotal * 0.10; // 10% GST
-  const totalAmount = subtotal + tax;
-  const balanceDue = totalAmount - form.amountPaid;
+const totalItems = form.products.reduce((sum, p) => sum + p.quantity, 0);
+const subtotal = form.products.reduce(
+  (sum, p) => sum + p.quantity * p.purchasePrice,
+  0
+);
+const tax = 0; // 🔥 GST 0 KARO
+const totalAmount = subtotal; // 🔥 SIRF SUBTOTAL
+const balanceDue = totalAmount - form.amountPaid;
 
   // Auto-update payment status based on balance
   const getAutoPaymentStatus = () => {
@@ -358,8 +358,6 @@ export default function AddPurchaseModal({ isOpen, onClose, onSuccess }) {
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">GST (10%)</span>
-                  <span>₹{tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm font-bold">
                   <span className="text-gray-900">Total Amount</span>
