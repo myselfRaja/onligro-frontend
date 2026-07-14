@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Loader } from "lucide-react";
 
 export default function BillingPage() {
   // ===== EXISTING STATES (SAME) =====
   const [services, setServices] = useState([]);
+  // ===== SERVICE PRICE EDITING =====
+const [servicePrices, setServicePrices] = useState({});
   const [staff, setStaff] = useState([]);
   const [bills, setBills] = useState([]);
   const [visibleCount, setVisibleCount] = useState(10);
@@ -21,12 +23,15 @@ export default function BillingPage() {
     customerPhone: "",
     services: [],
     staffId: "",
-    finalAmount: "",
+    
     paymentMode: "Cash",
   });
   const [showStaffDropdown, setShowStaffDropdown] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
   const [serviceTotal, setServiceTotal] = useState(0);
+  // ===== DISCOUNT STATES =====
+const [discountAmount, setDiscountAmount] = useState(0);
+const [discountType, setDiscountType] = useState('flat'); // 'flat' or 'percent'
   const isMobile = typeof navigator !== 'undefined' && 
     /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
@@ -64,11 +69,15 @@ export default function BillingPage() {
   }
 
   // ===== SERVICE TOTAL =====
-  useEffect(() => {
-    const selected = services.filter((service) => form.services.includes(service._id));
-    const total = selected.reduce((sum, service) => sum + service.price, 0);
-    setServiceTotal(total);
-  }, [form.services, services]);
+// ===== SERVICE TOTAL =====
+useEffect(() => {
+  const selected = services.filter((service) => form.services.includes(service._id));
+  const total = selected.reduce((sum, service) => {
+    const price = servicePrices[service._id] !== undefined ? servicePrices[service._id] : service.price;
+    return sum + price;
+  }, 0);
+  setServiceTotal(total);
+}, [form.services, services, servicePrices]); // ← servicePrices ADD KARO
 
   // ===== 🔥 NEW: PRODUCT TOTAL =====
   useEffect(() => {
@@ -102,10 +111,7 @@ export default function BillingPage() {
       alert("📞 Enter valid 10 digit phone number");
       return;
     }
-    if (!form.finalAmount || Number(form.finalAmount) <= 0) {
-      alert("💰 Please enter final amount");
-      return;
-    }
+   
     if (form.services.length === 0 && selectedProducts.length === 0) { 
       alert("💇 Please select at least one service or product");
       return;
@@ -117,18 +123,24 @@ export default function BillingPage() {
 
     setCreatingBill(true);
 
-    const billData = {
-      customerName: form.customerName,
-      customerPhone: form.customerPhone,
-      services: form.services,
-      staffId: form.staffId,
-      finalAmount: Number(form.finalAmount),
-      paymentMode: form.paymentMode,
-      products: selectedProducts.map(p => ({   // ✅ NEW
-        productId: p.productId,
-        quantity: p.quantity
-      }))
-    };
+ const billData = {
+  customerName: form.customerName,
+  customerPhone: form.customerPhone,
+  services: form.services.map(id => ({
+    serviceId: id,
+    price: servicePrices[id] !== undefined ? servicePrices[id] : services.find(s => s._id === id)?.price || 0
+  })),
+  staffId: form.staffId,
+  finalAmount: Number(grandTotal),  // ← Auto-calculated
+  paymentMode: form.paymentMode,
+  products: selectedProducts.map(p => ({
+    productId: p.productId,
+    quantity: p.quantity,
+    price: p.price
+  })),
+  discount: discountAmount,
+  discountType: discountType,
+};
 
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/add`, {
@@ -140,20 +152,25 @@ export default function BillingPage() {
 
       const data = await res.json();
 
-      if (res.ok) {
-        setCurrentBill(data.bill);
-        setShowReceiptModal(true);
-        setForm({
-          customerName: "",
-          customerPhone: "",
-          services: [],
-          staffId: "",
-          finalAmount: "",
-          paymentMode: "Cash",
-        });
-        setSelectedProducts([]); // ✅ NEW
-        setSearchService("");
-        loadData();
+    if (res.ok) {
+  setCurrentBill(data.bill);
+  setShowReceiptModal(true);
+  setForm({
+    customerName: "",
+    customerPhone: "",
+    services: [],
+    staffId: "",
+    paymentMode: "Cash",
+  });
+  setSelectedProducts([]);
+  setSearchService("");
+  // 🔥 DISCOUNT RESET KARO
+  setDiscountAmount(0);
+  setDiscountType('percent'); // ← By default percent hi rahega
+  // 🔥 SERVICE PRICES RESET KARO
+  setServicePrices({});
+  loadData();
+
       } else {
         alert(data.message || "Failed to create bill");
       }
@@ -164,7 +181,25 @@ export default function BillingPage() {
       setCreatingBill(false);
     }
   }
+// ===== GRAND TOTAL =====
+useEffect(() => {
+  setTotalAmount(serviceTotal + productTotal);
+}, [serviceTotal, productTotal]);
 
+// ===== 🔥 GRAND TOTAL WITH DISCOUNT =====
+const grandTotal = useMemo(() => {
+  const subtotal = totalAmount;
+  let discount = discountAmount;
+  
+  if (discountType === 'percent') {
+    discount = (subtotal * discountAmount) / 100;
+  }
+  
+  const total = Math.max(0, subtotal - discount);
+  
+  // 🔥 Round to nearest whole number (₹8048)
+  return Math.round(total);
+}, [totalAmount, discountAmount, discountType]);
   // ===== EXISTING FUNCTIONS (SAME) =====
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -307,11 +342,7 @@ Thank you! Visit again
   }
 
   // 🔥 YAHAN BANAO - Return se PEHLE
-const isFormInvalid = (form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || !form.finalAmount || creatingBill;
-
-  // ================================================================
-  // ===== YAHAN SE RETURN STARTS (APNA EXISTING RETURN PASTE KARO) =====
-  // ================================================================
+const isFormInvalid = (form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || creatingBill;
 
   // ================================================================
   // ===== YAHAN SE RETURN STARTS (APNA EXISTING RETURN PASTE KARO) =====
@@ -374,12 +405,42 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                         <p className="text-sm font-medium text-blue-700">📌 {form.services.length} Service{form.services.length > 1 ? 's' : ''} Selected</p>
                         <button type="button" onClick={() => setForm({ ...form, services: [] })} className="text-xs text-red-500 hover:text-red-700 font-medium">Clear All</button>
                       </div>
-                      {services.filter((s) => form.services.includes(s._id)).map((service) => (
-                        <div key={service._id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-blue-100 mb-1">
-                          <span className="text-sm font-medium text-gray-800">{service.name} - ₹{service.price}</span>
-                          <button type="button" onClick={() => setForm({ ...form, services: form.services.filter((id) => id !== service._id) })} className="text-red-400 hover:text-red-600">✕</button>
-                        </div>
-                      ))}
+                     {services.filter((s) => form.services.includes(s._id)).map((service) => (
+  <div key={service._id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-blue-100 mb-1">
+    <div className="flex items-center gap-2 flex-1">
+      <span className="text-sm font-medium text-gray-800">{service.name}</span>
+      <span className="text-gray-400">-</span>
+      <input
+        type="number"
+        value={servicePrices[service._id] !== undefined ? (servicePrices[service._id] === '' ? '' : servicePrices[service._id]) : service.price}
+        onChange={(e) => {
+          const val = e.target.value;
+          if (val === '') {
+            setServicePrices(prev => ({ ...prev, [service._id]: '' }));
+          } else {
+            setServicePrices(prev => ({ ...prev, [service._id]: Number(val) }));
+          }
+        }}
+        className="w-20 px-2 py-1 border border-gray-200 rounded text-sm text-center"
+        min="0"
+      />
+    </div>
+    <button 
+      type="button" 
+      onClick={() => {
+        setForm({ ...form, services: form.services.filter((id) => id !== service._id) });
+        setServicePrices(prev => {
+          const newPrices = { ...prev };
+          delete newPrices[service._id];
+          return newPrices;
+        });
+      }} 
+      className="text-red-400 hover:text-red-600"
+    >
+      ✕
+    </button>
+  </div>
+))}
                     </div>
                   )}
                 </div>
@@ -414,14 +475,47 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                         <p className="text-sm font-medium text-green-700">📦 {selectedProducts.length} Product{selectedProducts.length > 1 ? 's' : ''} Selected</p>
                         <button type="button" onClick={() => setSelectedProducts([])} className="text-xs text-red-500 hover:text-red-700 font-medium">Clear All</button>
                       </div>
-                      {selectedProducts.map((p) => (
-                        <div key={p.productId} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100 mb-1">
-                          <span className="text-sm font-medium text-gray-800 flex-1">{p.name}</span>
-                          <span className="text-xs text-gray-500 mx-2">₹{p.price}</span>
-                          <input type="number" value={p.quantity} onChange={(e) => { const qty = Math.max(1, parseInt(e.target.value) || 1); setSelectedProducts(selectedProducts.map(sp => sp.productId === p.productId ? { ...sp, quantity: qty } : sp)); }} className="w-12 px-1 py-0.5 border border-gray-200 rounded text-xs text-center" min="1" max={p.stock} />
-                          <button type="button" onClick={() => setSelectedProducts(selectedProducts.filter(sp => sp.productId !== p.productId))} className="text-red-400 hover:text-red-600 ml-2">✕</button>
-                        </div>
-                      ))}
+                   {selectedProducts.map((p) => (
+  <div key={p.productId} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100 mb-1">
+    <span className="text-sm font-medium text-gray-800 flex-1">{p.name}</span>
+    <input
+      type="number"
+      value={p.price}
+      onChange={(e) => {
+        const newPrice = Number(e.target.value) || 0;
+        setSelectedProducts(selectedProducts.map(sp => 
+          sp.productId === p.productId ? { ...sp, price: newPrice } : sp
+        ));
+      }}
+      className="w-20 px-2 py-1 border border-gray-200 rounded text-xs text-center"
+      min="0"
+    />
+   <input 
+  type="number" 
+  value={p.quantity} 
+  onChange={(e) => { 
+    const val = e.target.value;
+    if (val === '') {
+      // 🔥 Empty value ko handle karo - 0 ya '' set karo
+      setSelectedProducts(selectedProducts.map(sp => 
+        sp.productId === p.productId ? { ...sp, quantity: '' } : sp
+      ));
+    } else {
+      const qty = parseInt(val) || 0;
+      if (qty >= 0) {
+        setSelectedProducts(selectedProducts.map(sp => 
+          sp.productId === p.productId ? { ...sp, quantity: qty } : sp
+        ));
+      }
+    }
+  }} 
+  className="w-12 px-1 py-0.5 border border-gray-200 rounded text-xs text-center" 
+  min="0" 
+  max={p.stock} 
+/>
+    <button type="button" onClick={() => setSelectedProducts(selectedProducts.filter(sp => sp.productId !== p.productId))} className="text-red-400 hover:text-red-600 ml-2">✕</button>
+  </div>
+))}
                     </div>
                   )}
                 </div>
@@ -472,25 +566,65 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                     <span className="text-gray-600 font-medium">Subtotal:</span>
                     <span className="text-xl font-bold text-blue-600">₹{totalAmount}</span>
                   </div>
-                  <div className="border-t pt-3 mt-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Final Amount *</label>
-                    <input type="number" value={form.finalAmount} onChange={(e) => setForm({ ...form, finalAmount: e.target.value })} onWheel={(e) => e.target.blur()} className="w-full px-4 py-3 rounded-xl border-2 border-blue-300 focus:ring-2 focus:ring-blue-500 text-lg font-bold" placeholder="Enter final amount" required />
-                    {totalAmount > 0 && form.finalAmount && (
-                      <p className={`text-sm mt-2 ${Number(form.finalAmount) > totalAmount ? 'text-orange-500' : 'text-green-600'}`}>
-                        {Number(form.finalAmount) > totalAmount ? `⚠️ Extra charges: ₹${Number(form.finalAmount) - totalAmount} added` : Number(form.finalAmount) < totalAmount ? `💸 Discount given: ₹${totalAmount - Number(form.finalAmount)}` : `✓ Exact amount`}
-                      </p>
-                    )}
-                  </div>
+                  {/* ===== DISCOUNT SECTION ===== */}
+{/* ===== DISCOUNT SECTION - NEW ===== */}
+<div className="mt-3">
+  <div className="flex items-center justify-between mb-1">
+    <label className="text-sm font-medium text-gray-700">Discount</label>
+    <span className="text-[10px] text-gray-400">Optional</span>
+  </div>
+  <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent overflow-hidden">
+    <input
+      type="number"
+      value={discountAmount || ''}
+      onChange={(e) => setDiscountAmount(Number(e.target.value) || 0)}
+      className="flex-1 px-3 py-2.5 text-sm bg-transparent outline-none min-w-0"
+      placeholder="0"
+      min="0"
+    />
+    <div className="flex items-center gap-0.5 bg-gray-50 px-1 py-1 rounded-lg mr-1">
+      <button
+        type="button"
+        onClick={() => setDiscountType('percent')}
+        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+          discountType === 'percent'
+            ? 'bg-blue-600 text-white shadow-sm'
+            : 'text-gray-500 hover:text-gray-700'
+        }`}
+      >
+        %
+      </button>
+      <button
+        type="button"
+        onClick={() => setDiscountType('flat')}
+        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+          discountType === 'flat'
+            ? 'bg-blue-600 text-white shadow-sm'
+            : 'text-gray-500 hover:text-gray-700'
+        }`}
+      >
+        ₹
+      </button>
+    </div>
+  </div>
+</div>
+                  {/* ===== TOTAL (AUTO-CALCULATED) ===== */}
+<div className="border-t pt-3 mt-3">
+  <div className="flex justify-between items-center">
+    <span className="text-gray-600 font-medium">Total:</span>
+<span className="text-2xl font-bold text-green-600">₹{grandTotal}</span>
+  </div>
+</div>
                 </div>
                     
                <button 
   type="submit" 
-  disabled={(form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || !form.finalAmount || creatingBill}
+ disabled={(form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || creatingBill}
   className={`w-full text-white font-semibold py-3 rounded-xl text-lg no-print transition ${
-    (form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || !form.finalAmount || creatingBill 
-      ? 'bg-gray-400 cursor-not-allowed' 
-      : 'bg-blue-600 hover:bg-blue-700'
-  }`}
+  (form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || creatingBill 
+    ? 'bg-gray-400 cursor-not-allowed' 
+    : 'bg-blue-600 hover:bg-blue-700'
+}`}
 >
   {creatingBill ? 'Creating Bill...' : '💾 Save & Print Bill'}
 </button>
