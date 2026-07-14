@@ -243,68 +243,37 @@ const grandTotal = useMemo(() => {
     }
   };
 
-  const shareOnWhatsApp = () => {
+const shareOnWhatsApp = () => {
   if (!currentBill) return;
 
-  const salonName = currentBill.salonId?.name || "Salon";
-  const salonAddress = currentBill.salonId?.address || "";
+  const phone = currentBill.customerPhone;
 
-  // ===== SERVICES LIST =====
-  const servicesList = currentBill.services
-    .map((s) => `${s.serviceName} - ₹${s.price}`)
-    .join("\n");
-
-  // ===== 🔥 PRODUCTS LIST (NEW) =====
-  const productsList = currentBill.products?.length > 0
-    ? currentBill.products
-        .map((p) => `${p.productName || p.name || "Product"} × ${p.quantity} - ₹${p.total || p.price * p.quantity}`)
-        .join("\n")
-    : "No products";
-
-  const discountAmount = Math.max(
-    0,
-    currentBill.totalAmount - currentBill.finalAmount
-  );
-
-  const message = `       ${salonName.toUpperCase()}
-      ${salonAddress}
-
-Bill: ${currentBill.billNumber}
-${new Date(currentBill.createdAt).toLocaleDateString("en-IN")} ${new Date(
-    currentBill.createdAt
-  ).toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })}
-
-Customer: ${currentBill.customerName}
-Phone: ${currentBill.customerPhone}
-Staff: ${currentBill.staffName}
-
-Services:
-${servicesList}
-
-Products:
-${productsList}
-
---------------------------------
-Subtotal: ₹${currentBill.totalAmount}
-Discount: ₹${discountAmount}
-Total: ₹${currentBill.finalAmount}
-Paid By: ${currentBill.paymentMode}
-Status: Paid ✅
-
-Thank you! Visit again
-📱 Bill generated via Onligro`;
-
-  const encodedMessage = encodeURIComponent(message);
-  const phone = currentBill.customerPhone || "";
-
-  if (phone) {
-    window.open(`https://wa.me/91${phone}?text=${encodedMessage}`, "_blank");
-  } else {
+  if (!phone) {
     alert("Customer phone number not available");
+    return;
   }
+
+  const billLink = `${window.location.origin}/bill/${currentBill._id}`;
+
+  const message = `Hi ${currentBill.customerName} 👋
+
+Thank you for visiting ${currentBill.salonId?.name || "our salon"}.
+
+🧾 Your bill is ready.
+
+Bill No: ${currentBill.billNumber}
+Amount Paid: ₹${currentBill.finalAmount}
+
+View Bill:
+${billLink}
+
+Thank you! ❤️
+Powered by Onligro`;
+
+  window.open(
+    `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`,
+    "_blank"
+  );
 };
 
   const displayedServices = searchService 
@@ -348,9 +317,9 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
   // ===== YAHAN SE RETURN STARTS (APNA EXISTING RETURN PASTE KARO) =====
   // ================================================================
 
- return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+  return (
+  <div className="min-h-screen bg-gray-50 p-3 md:p-6 overflow-x-hidden">
+    <div className="max-w-7xl mx-auto w-full">
         
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">💰 Billing System</h1>
@@ -360,7 +329,7 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Main Form */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6 sticky top-6 overflow-hidden">
               <h2 className="text-xl font-semibold mb-6 text-gray-800">New Bill</h2>
               
               <form onSubmit={createBill} className="space-y-5">
