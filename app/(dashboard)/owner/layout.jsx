@@ -82,23 +82,26 @@ if (loading) {
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:block">
-        <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      </div>
-
-      {/* Main Area */}
-      <div className="flex-1 flex flex-col p-4 md:p-6 bg-[var(--color-bg)]">
-        {/* ✅ Pass actual owner name from auth */}
-        <Topbar ownerName={owner.name || "Owner"} />
-
-        {/* Page Content */}
-        <div className="mt-4 pb-20 md:pb-4">{children}</div>
-      </div>
-
-      {/* Mobile Bottom Navigation */}
-      <BottomNav />
+  <div className="flex min-h-screen max-w-[100vw] overflow-x-hidden">
+    {/* Desktop Sidebar */}
+    <div className="hidden md:block flex-shrink-0">
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
     </div>
-  );
+
+    {/* Main Area */}
+    <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden bg-[var(--color-bg)]">
+      <div className="p-4 md:p-6">
+        <Topbar ownerName={owner.name || "Owner"} />
+      </div>
+
+      {/* Page Content */}
+      <div className="flex-1 px-4 md:px-6 pb-20 md:pb-4 overflow-x-hidden max-w-full">
+        {children}
+      </div>
+    </div>
+
+    {/* Mobile Bottom Navigation */}
+    <BottomNav />
+  </div>
+);
 }
