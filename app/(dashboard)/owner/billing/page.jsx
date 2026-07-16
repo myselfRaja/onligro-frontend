@@ -338,8 +338,8 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
   // ================================================================
 
   return (
-  <div className="min-h-screen bg-gray-50 p-3 md:p-6 overflow-x-hidden">
-    <div className="max-w-7xl mx-auto w-full">
+<div className="min-h-screen bg-gray-50 p-3 md:p-6 overflow-x-auto">
+ <div className="max-w-7xl mx-auto w-full px-2 md:px-4">
         
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">💰 Billing System</h1>
