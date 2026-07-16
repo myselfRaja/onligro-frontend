@@ -1,4 +1,5 @@
 "use client";
+import { io } from "socket.io-client";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
@@ -33,6 +34,7 @@ export default function Topbar() {
 );
 
 
+
         const data = await res.json();
 
         if (res.ok && data.owner) {
@@ -48,6 +50,27 @@ export default function Topbar() {
 
     fetchOwnerProfile();
   }, []);
+
+  // 🔥 Socket.io - Real-time notifications
+useEffect(() => {
+  const socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000");
+  
+ socket.on("new_appointment", (data) => {
+  const newNotif = {
+    id: Date.now(),
+    message: `📅 New booking: ${data.appointment?.customerName || "Customer"}`,
+    time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+  };
+  
+  setNotifications(prev => [newNotif, ...prev].slice(0, 5));
+  
+  setTimeout(() => {
+    setNotifications(prev => prev.filter(n => n.id !== newNotif.id));
+  }, 10000);
+});
+  
+  return () => socket.disconnect();
+}, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -151,16 +174,21 @@ const handleLogout = async () => {
       <div className="flex items-center gap-2 sm:gap-4">
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => {
-              setIsNotificationOpen(!isNotificationOpen);
-              setIsDropdownOpen(false);
-            }}
-            className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-            {/* ✅ No notification badge - Clean */}
-          </button>
+         <button
+  onClick={() => {
+    setIsNotificationOpen(!isNotificationOpen);
+    setIsDropdownOpen(false);
+  }}
+  className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+>
+  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+  {/* 🔥 Notification Badge */}
+  {notifications.length > 0 && (
+    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+      {notifications.length}
+    </span>
+  )}
+</button>
 
           {/* Notifications Dropdown */}
           <AnimatePresence>
@@ -173,16 +201,41 @@ const handleLogout = async () => {
                 className="absolute right-0 top-10 sm:top-12 w-72 sm:w-80 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50"
               >
                 {/* Notifications Header */}
-                <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-gray-100">
-                  <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Notifications</h3>
-                </div>
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+  <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
+  {notifications.length > 0 && (
+    <button 
+      onClick={() => setNotifications([])}
+      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+    >
+      Clear All
+    </button>
+  )}
+</div>
 
                 {/* ✅ Empty Notifications State */}
-                <div className="px-4 py-6 text-center">
-                  <Bell className="w-6 h-6 sm:w-8 sm:h-8 text-gray-300 mx-auto mb-2" />
-                  <p className="text-gray-500 text-xs sm:text-sm">No notifications</p>
-                  <p className="text-gray-400 text-xs mt-1">Real-time updates coming soon</p>
-                </div>
+               {/* Notifications List */}
+{notifications.length === 0 ? (
+  <div className="px-4 py-6 text-center">
+    <Bell className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+    <p className="text-gray-500 text-sm">No notifications</p>
+  </div>
+) : (
+  <div className="max-h-64 overflow-y-auto">
+  {notifications.map((notif) => (
+  <div key={notif.id} className="px-4 py-3 hover:bg-gray-50 border-b border-gray-50 last:border-0 transition-colors">
+    <div className="flex items-start gap-3">
+      <span className="text-lg mt-0.5">📅</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-gray-800">{notif.message}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{notif.time}</p>
+      </div>
+    </div>
+  </div>
+))}
+    
+  </div>
+)}
 
                 {/* Notifications Footer - Hidden for now */}
               </motion.div>

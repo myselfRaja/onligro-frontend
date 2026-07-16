@@ -235,29 +235,25 @@ export default function SuccessPage({ params, searchParams }) {
                   Services Booked
                 </h2>
                 
-                {appointment.services && appointment.services.length > 0 ? (
-                  <div className="space-y-3">
-                    {appointment.services.map((service, index) => (
-                      <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                        <div>
-                          <p className="text-gray-800 font-medium">{service.name}</p>
-                          {service.duration && (
-                            <p className="text-gray-500 text-sm">{service.duration} min</p>
-                          )}
-                        </div>
-                        <span className="text-gray-800 font-semibold">₹{service.price}</span>
-                      </div>
-                    ))}
-                    
-                    {/* Total Price */}
-                    <div className="flex justify-between items-center pt-3 mt-3 border-t border-gray-200">
-                      <span className="text-gray-800 font-bold text-lg">Total:</span>
-                      <span className="text-gray-800 font-bold text-lg">₹{appointment.finalAmount ?? appointment.totalPrice}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-600 text-center py-4">No services listed</p>
-                )}
+             {appointment.services && appointment.services.length > 0 ? (
+  <div className="space-y-3">
+    {appointment.services.map((service, index) => (
+      <div 
+        key={service._id || service.name || index} 
+        className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
+      >
+        <div>
+          <p className="text-gray-800 font-medium">{service.name}</p>
+          {service.duration && (
+            <p className="text-gray-500 text-sm">{service.duration} min</p>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+) : (
+  <p className="text-gray-600 text-center py-4">No services listed</p>
+)}
               </div>
             </div>
           </div>

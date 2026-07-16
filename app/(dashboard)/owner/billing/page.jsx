@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
+import { useSearchParams } from "next/navigation"; // ← ADD THIS
 import { Loader } from "lucide-react";
 
 export default function BillingPage() {
+    const searchParams = useSearchParams(); 
   // ===== EXISTING STATES (SAME) =====
   const [services, setServices] = useState([]);
   // ===== SERVICE PRICE EDITING =====
@@ -18,12 +20,11 @@ const [servicePrices, setServicePrices] = useState({});
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [currentBill, setCurrentBill] = useState(null);
   const receiptRef = useRef(null);
-  const [form, setForm] = useState({
-    customerName: "",
-    customerPhone: "",
-    services: [],
-    staffId: "",
-    
+ const [form, setForm] = useState({
+    customerName: searchParams.get("customerName") || "",
+    customerPhone: searchParams.get("customerPhone") || "",
+    services: searchParams.get("services") ? searchParams.get("services").split(",") : [],
+    staffId: searchParams.get("staffId") || "",
     paymentMode: "Cash",
   });
   const [showStaffDropdown, setShowStaffDropdown] = useState(false);
@@ -58,9 +59,27 @@ const [discountType, setDiscountType] = useState('flat'); // 'flat' or 'percent'
       const productData = await productRes.json(); // ✅ NEW
 
       setServices(serviceData.services || []);
+      // 🔥 APPOINTMENT AUTO-FILL: Services set karo par prices empty rakho
+const appointmentServices = searchParams.get("services");
+if (appointmentServices && serviceData.services) {
+  const serviceIds = appointmentServices.split(",");
+  const prices = {};
+  serviceIds.forEach(id => {
+    prices[id] = ""; // Empty price - owner bharega
+  });
+  setServicePrices(prices);
+}
       setStaff(staffData.staff || []);
       setBills(billsData.bills || []);
       setProducts(productData.products || []); // ✅ NEW
+      // 🔥 APPOINTMENT AUTO-FILL: Staff set karo agar URL se aaya hai
+const appointmentStaffId = searchParams.get("staffId");
+if (appointmentStaffId && staffData.staff) {
+  const staffExists = staffData.staff.find(s => s._id === appointmentStaffId);
+  if (staffExists) {
+    setForm(prev => ({ ...prev, staffId: appointmentStaffId }));
+  }
+}
     } catch (err) {
       console.error(err);
     } finally {
@@ -140,6 +159,7 @@ useEffect(() => {
   })),
   discount: discountAmount,
   discountType: discountType,
+    appointmentId: searchParams.get("appointmentId") || null, // ← YE LINE ADD KARO
 };
 
     try {
