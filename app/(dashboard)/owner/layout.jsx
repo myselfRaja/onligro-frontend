@@ -6,17 +6,16 @@ import Sidebar from "./ui/Sidebar";
 import Topbar from "./ui/Topbar";
 import BottomNav from "./ui/BottomNav";
 import { Loader } from "lucide-react";
+
 export default function OwnerDashboardLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [owner, setOwner] = useState(null);
   const router = useRouter();
 
-  // ✅ CRITICAL: Authentication check
   useEffect(() => {
     checkAuth();
     
-    // ✅ Also check when page becomes visible (back button case)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         checkAuth();
@@ -35,7 +34,7 @@ export default function OwnerDashboardLayout({ children }) {
       console.log("🟡 Checking authentication...");
       
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify`, {
-        credentials: "include", // Send cookies
+        credentials: "include",
       });
 
       console.log("🟢 Auth response status:", res.status);
@@ -51,51 +50,47 @@ export default function OwnerDashboardLayout({ children }) {
     } catch (error) {
       console.error("🔴 Auth error:", error);
       
-      // Clear all client data
       localStorage.clear();
       sessionStorage.clear();
       
-      // Redirect to login
       router.push("/login");
-      router.refresh(); // Force Next.js refresh
+      router.refresh();
       
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Loading state
-if (loading) {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-[var(--color-bg)] z-50">
-      <div className="text-center">
-        <Loader className="animate-spin text-gray-500 mx-auto" size={32} />
-        <p className="mt-4 text-gray-600">Verifying authentication...</p>
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-[var(--color-bg)] z-50">
+        <div className="text-center">
+          <Loader className="animate-spin text-gray-500 mx-auto" size={32} />
+          <p className="mt-4 text-gray-600">Verifying authentication...</p>
+        </div>
       </div>
-    </div>
-  );
-}
-
-  // ✅ Don't render layout if not authenticated
-  if (!owner) {
-    return null; // Will redirect from checkAuth
+    );
   }
 
-  return (
-  <div className="flex min-h-screen max-w-[100vw] overflow-x-hidden">
+  if (!owner) {
+    return null;
+  }
+
+ return (
+  <div className="flex min-h-screen">
     {/* Desktop Sidebar */}
     <div className="hidden md:block flex-shrink-0">
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
     </div>
 
     {/* Main Area */}
-    <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden bg-[var(--color-bg)]">
+    <div className="flex-1 flex flex-col min-w-0 bg-[var(--color-bg)]">
       <div className="p-4 md:p-6">
         <Topbar ownerName={owner.name || "Owner"} />
       </div>
 
       {/* Page Content */}
-      <div className="flex-1 px-4 md:px-6 pb-20 md:pb-4 overflow-x-hidden max-w-full">
+      <div className="flex-1 px-4 md:px-6 pb-20 md:pb-4">
         {children}
       </div>
     </div>
