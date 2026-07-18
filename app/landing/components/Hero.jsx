@@ -8,12 +8,11 @@ export default function Hero() {
     {/* LEFT CONTENT */}
     <div className="flex-1">
       <h1 className="text-4xl md:text-6xl font-bold leading-tight text-gray-900">
-        Salon Appointments. <br /> Automated.
+        Complete Salon Management. <br /> One Dashboard.
       </h1>
 
       <p className="text-lg md:text-xl text-gray-600 mt-5 max-w-md">
-        Real-time slots, online bookings, staff auto assignment —
-        everything runs on autopilot.
+        Smart Billing • Customer Management • Inventory • Staff Tracking • Reports • WhatsApp Reminders — all in one place.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-4 mt-8 w-full sm:w-auto">
@@ -41,8 +40,8 @@ export default function Hero() {
     {/* RIGHT IMAGE */}
     <div className="flex-1 flex justify-center">
   <img
-  src="/hero-salon2.png"
-  alt="Salon SAAS dashboard"
+  src="/dash.png"
+  alt="Onligro - Salon Management Dashboard"
   className="w-full rounded-2xl shadow-2xl border border-gray-100 hero-float max-w-full h-auto object-contain md:h-[460px] md:object-cover md:max-w-none"
 />
 

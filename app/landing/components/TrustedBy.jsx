@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 export default function TrustedBy() {
   return (
     <section className="w-full py-16 px-6 bg-white">
-      <div className="max-w-6xl mx-auto text-center">
+      <div className="max-w-5xl mx-auto text-center">
 
         {/* Title */}
         <motion.p
@@ -20,7 +20,7 @@ export default function TrustedBy() {
 
         {/* Badges */}
         <motion.div
-          className="flex flex-wrap justify-center gap-4 mt-8"
+          className="flex flex-wrap justify-center gap-3 mt-8"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
@@ -28,15 +28,17 @@ export default function TrustedBy() {
             hidden: { opacity: 0 },
             visible: {
               opacity: 1,
-              transition: { staggerChildren: 0.15 },
+              transition: { staggerChildren: 0.1 },
             },
           }}
         >
           {[
-            "Real-time slots",
-            "Staff automation",
-            "Easy setup",
-            "Unlimited appointments",
+            "Smart Billing",
+            "Customer Management",
+            "Inventory",
+            "Staff Performance",
+            "Reports",
+            "WhatsApp Reminders",
           ].map((text, index) => (
             <motion.span
               key={index}
@@ -46,10 +48,10 @@ export default function TrustedBy() {
               }}
               whileHover={{
                 scale: 1.05,
-                boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               }}
               transition={{ duration: 0.3 }}
-              className="px-5 py-2 bg-gray-100/80 border border-gray-200 rounded-full text-sm text-gray-700 backdrop-blur-sm"
+              className="px-5 py-2 bg-gray-100 border border-gray-200 rounded-full text-sm text-gray-700"
             >
               {text}
             </motion.span>

@@ -10,13 +10,13 @@ export default function Pricing() {
     >
       <div className="max-w-6xl mx-auto text-center">
         <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-          Simple plans for every salon
+          Simple Plans for Every Salon
         </h2>
         <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
-          Start with everything you need. Upgrade as you grow.
+          Start with what you need. Upgrade as you grow.
         </p>
 
-        {/* Cards Wrapper (stagger animation) */}
+        {/* Cards Wrapper */}
         <motion.div
           className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 items-stretch"
           initial="hidden"
@@ -29,7 +29,7 @@ export default function Pricing() {
             },
           }}
         >
-          {/* CARD 1 — Starter (Intentionally Limited) */}
+          {/* CARD 1 — Starter */}
           <motion.div
             variants={{
               hidden: { opacity: 0, y: 40 },
@@ -40,31 +40,27 @@ export default function Pricing() {
             className="flex flex-col p-8 bg-white rounded-3xl border shadow-sm text-left"
           >
             <h3 className="text-lg font-semibold text-gray-900">Starter</h3>
-            <p className="text-gray-600 mt-1">For individual stylists</p>
+            <p className="text-gray-600 mt-1">For small salons & freelancers</p>
 
             <div className="flex items-end gap-1 mt-6">
-              <span className="text-4xl font-bold text-gray-900">₹249</span>
+              <span className="text-4xl font-bold text-gray-900">₹749</span>
               <span className="text-gray-500 mb-1 text-sm">/ month</span>
             </div>
 
-            <p className="text-xs text-green-600 mt-1 font-medium">
-              50% off first year · <s>₹499</s>
-            </p>
-
             <ul className="mt-6 space-y-2 text-gray-700 text-sm flex-grow">
-              <li>✔ Up to 2 staff members</li>
-              <li>✔ Basic booking page</li>
-              <li>✔ Manual appointment management</li>
-              <li>✔ 5 services limit</li>
-              <li>❌ No owner dashboard</li>
-              <li>❌ No advanced features</li>
+              <li>✔ Smart Billing & POS</li>
+              <li>✔ Customer Management</li>
+              <li>✔ Up to 3 Staff Members</li>
+              <li>✔ Basic Reports</li>
+              <li>✔ Appointment Management</li>
+              <li>✔ Email Support</li>
             </ul>
 
             <a
               href="/owner/register"
               className="mt-8 w-full py-3 rounded-xl border border-gray-300 text-gray-900 text-center text-sm font-medium hover:bg-gray-100 transition"
             >
-              Start Basic
+              Start Free Trial
             </a>
           </motion.div>
 
@@ -94,22 +90,19 @@ export default function Pricing() {
                 </p>
 
                 <div className="flex items-end gap-1 mt-6">
-                  <span className="text-4xl font-bold text-gray-900">₹749</span>
+                  <span className="text-4xl font-bold text-gray-900">₹1,500</span>
                   <span className="text-gray-500 mb-1 text-sm">/ month</span>
                 </div>
 
-                <p className="text-xs text-green-600 mt-1 font-medium">
-                  50% off first year · <s>₹1499</s>
-                </p>
-
                 <ul className="mt-6 space-y-2 text-gray-700 text-sm flex-grow">
-                  <li>✔ Up to 10 staff members</li>
-                  <li>✔ Full owner dashboard</li>
-                  <li>✔ Real-time booking system</li>
-                  <li>✔ Staff management</li>
-                  <li>✔ Unlimited services</li>
-                  <li>✔ Advanced analytics</li>
-                  <li>✔ Multi-service appointments</li>
+                  <li>✔ Unlimited Billing & Invoices</li>
+                  <li>✔ Customer Management</li>
+                  <li>✔ Inventory & Stock Tracking</li>
+                  <li>✔ Staff Performance Management</li>
+                  <li>✔ Business Reports & Analytics</li>
+                  <li>✔ WhatsApp Reminders</li>
+                  <li>✔ Appointment Management</li>
+                  <li>✔ 24/7 Priority Support</li>
                 </ul>
 
                 <a
@@ -122,7 +115,7 @@ export default function Pricing() {
             </div>
           </motion.div>
 
-          {/* CARD 3 — Business (Future) */}
+          {/* CARD 3 — Business */}
           <motion.div
             variants={{
               hidden: { opacity: 0, y: 40 },
@@ -133,24 +126,21 @@ export default function Pricing() {
             className="flex flex-col p-8 bg-white rounded-3xl border shadow-sm text-left"
           >
             <h3 className="text-lg font-semibold text-gray-900">Business</h3>
-            <p className="text-gray-600 mt-1">For salon chains</p>
+            <p className="text-gray-600 mt-1">For salon chains & franchises</p>
 
             <div className="flex items-end gap-1 mt-6">
-              <span className="text-4xl font-bold text-gray-900">₹1249</span>
+              <span className="text-4xl font-bold text-gray-900">₹2,500</span>
               <span className="text-gray-500 mb-1 text-sm">/ month</span>
             </div>
 
-            <p className="text-xs text-green-600 mt-1 font-medium">
-              50% off first year · <s>₹2499</s>
-            </p>
-
             <ul className="mt-6 space-y-2 text-gray-700 text-sm flex-grow">
               <li>✔ Everything in Professional</li>
-              <li>✔ Multi-branch management</li>
-              <li>✔ Advanced role permissions</li>
-              <li>✔ Custom branding</li>
-              <li>✔ Dedicated account manager</li>
-              <li>✔ Priority support</li>
+              <li>✔ Multi-Branch Management</li>
+              <li>✔ Advanced Role Permissions</li>
+              <li>✔ Custom Branding</li>
+              <li>✔ Dedicated Account Manager</li>
+              <li>✔ Priority Support</li>
+              <li>✔ Advanced Analytics</li>
               <li>🔜 <span className="text-gray-500">Coming Soon</span></li>
             </ul>
 

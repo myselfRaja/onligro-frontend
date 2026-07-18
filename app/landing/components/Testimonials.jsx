@@ -5,22 +5,28 @@ import { motion } from "framer-motion";
 export default function Testimonials() {
   const reviews = [
     {
-      name: "Riya’s Beauty Salon",
-      text: "Booking system itna easy hai ki humare customers khud book kar lete hain.",
-     // placeholder
+      name: "Anish Thakur",
+      salon: "BOB The Barber",
+      location: "Ranchi",
+      text: "Earlier, I used to send double bills sometimes. The inventory and billing system has made my work so much easier. Now everything is tracked and customers are happy too.",
       role: "Owner",
+      problem: "Billing & Inventory",
     },
     {
-      name: "The Hair Studio",
-      text: "Staff auto-assignment ne hamare double bookings completely khatam kar diye.",
-     
-      role: "Founder",
+      name: "Geetanjali",
+      salon: "Family Salon",
+      location: "Kolkata",
+      text: "I used to do billing on paper earlier. I had no reports and it was very difficult. Onligro has made my work so easy. Now everything is digital and I get reports too.",
+      role: "Owner",
+      problem: "Billing & Reports",
     },
     {
-      name: "Diva Glow Salon",
-      text: "Dashboard simple hai and real-time slots amazing work karta hai.",
-
-      role: "Manager",
+      name: "Nadeem Ali",
+      salon: "Hair Studio",
+      location: "Hyderabad",
+      text: "I needed both billing and appointment management. Onligro gave me both in one place. Now customers book easily and billing is smooth too.",
+      role: "Owner",
+      problem: "Billing & Appointments",
     },
   ];
 
@@ -36,7 +42,7 @@ export default function Testimonials() {
           transition={{ duration: 0.5 }}
           className="text-3xl md:text-4xl font-bold text-gray-900"
         >
-          Loved by Real Salon Owners
+          Real Stories from Real Salon Owners
         </motion.h2>
 
         <motion.p
@@ -44,14 +50,14 @@ export default function Testimonials() {
           whileInView={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
           viewport={{ once: true }}
-          className="text-gray-600 mt-3"
+          className="text-gray-600 mt-3 max-w-2xl mx-auto"
         >
-          Hear from salons already using our appointment system every day.
+          See how Onligro is helping salon owners in Ranchi manage their business better.
         </motion.p>
 
         {/* Testimonials Grid */}
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-16"
+          className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16"
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
@@ -77,22 +83,37 @@ export default function Testimonials() {
               transition={{ duration: 0.4 }}
               className="bg-white border rounded-3xl p-8 shadow-sm text-left"
             >
-              {/* Salon Owner Photo */}
-              <div className="flex items-center gap-4">
-       
-                <div>
-                  <p className="font-semibold text-gray-900">{review.name}</p>
-                  <p className="text-sm text-gray-500">{review.role}</p>
-                </div>
+              {/* Salon Owner Info */}
+              <div>
+                <p className="font-semibold text-gray-900 text-lg">{review.name}</p>
+                <p className="text-sm text-gray-500">{review.salon}</p>
+                <p className="text-xs text-gray-400">{review.location}</p>
               </div>
 
-              {/* Message */}
-              <p className="text-gray-700 italic leading-relaxed mt-6">
+              {/* Problem Tag */}
+              <div className="mt-3">
+                <span className="px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
+                  🎯 {review.problem}
+                </span>
+              </div>
+
+              {/* Testimonial Text */}
+              <p className="text-gray-700 leading-relaxed mt-4 text-sm">
                 “{review.text}”
+              </p>
+
+              {/* Role */}
+              <p className="text-sm font-medium text-gray-900 mt-4">
+                — {review.role}
               </p>
             </motion.div>
           ))}
         </motion.div>
+
+        {/* Bottom Note */}
+        <p className="text-xs text-gray-400 mt-10">
+          ⭐ Real reviews from Onligro users in Ranchi, Jharkhand
+        </p>
       </div>
     </section>
   );

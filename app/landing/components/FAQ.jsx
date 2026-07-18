@@ -6,34 +6,39 @@ import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
-    question: "Will my customers use this?",
+    question: "Can I create bills from my mobile?",
     answer:
-      "Yes — booking link WhatsApp, Instagram, Facebook sab jagah share ho sakta hai. Mobile-friendly booking flow customers ke liye bahut easy hai.",
+      "Yes! Onligro works perfectly on mobile, tablet, and desktop. You can create bills, manage customers, and track inventory from anywhere — anytime.",
   },
   {
-    question: "Is it hard to setup?",
+    question: "Can I manage my inventory and stock?",
     answer:
-      "Bilkul nahi. Staff, services aur working hours add karte hi system automatically 30-minute slots generate kar deta hai.",
+      "Absolutely. Track product stock in real-time, get low stock alerts, and manage all your inventory in one place. Never run out of essential items again.",
   },
   {
-    question: "Is support available?",
+    question: "Can I track staff performance?",
     answer:
-      "Yes — chat, email, WhatsApp support sab available hai. Yearly plan par priority support milta hai.",
+      "Yes. Monitor staff commissions, track performance metrics, and see who's your top performer. Perfect for managing your team effectively.",
   },
   {
-    question: "Can I use it from mobile?",
+    question: "Can I send WhatsApp reminders to customers?",
     answer:
-      "Haan. Owner dashboard aur customer booking — dono completely mobile friendly hai.",
+      "Yes! Auto-send bill receipts, appointment reminders, and promotional messages directly via WhatsApp. Keep your customers engaged and informed.",
   },
   {
-    question: "Does it prevent double booking?",
+    question: "Is customer history stored automatically?",
     answer:
-      "Yes — jaise hi slot book hota hai wo real-time me block ho jata hai. Kisi bhi customer ko same slot visible nahi hota.",
+      "Yes. Every customer's service history, preferences, and phone numbers are saved automatically. You'll never lose customer data again.",
   },
   {
-     question: "Can I cancel anytime? Is it risky to try?",
+    question: "Is my business data secure?",
     answer:
-      "Yes — cancel anytime, no hidden fees, no long-term commitment. Aap 14-day free trial me pura system test kar sakte hain, bilkul zero risk.",
+      "100% secure. Your data is encrypted and stored safely. We take data privacy and security very seriously. Your business data is safe with us.",
+  },
+  {
+    question: "Can I cancel anytime? Is it risky to try?",
+    answer:
+      "Yes — cancel anytime, no hidden fees, no long-term commitment. You can test the complete system with our 14-day free trial, absolutely zero risk.",
   },
 ];
 
@@ -58,6 +63,16 @@ export default function FAQ() {
         >
           Frequently Asked Questions
         </motion.h2>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          viewport={{ once: true }}
+          className="text-gray-600 mt-3"
+        >
+          Everything you need to know about Onligro — Salon Management Software
+        </motion.p>
 
         {/* FAQ List */}
         <div className="mt-14 space-y-4 text-left">
@@ -104,6 +119,23 @@ export default function FAQ() {
             </motion.div>
           ))}
         </div>
+
+        {/* Bottom CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-12"
+        >
+          <p className="text-gray-600">
+            Still have questions?{" "}
+            <a href="#contact" className="text-black font-semibold hover:underline">
+              Contact our support team
+            </a>
+          </p>
+        </motion.div>
+
       </div>
     </section>
   );
