@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Eye, EyeOff, Mail, Lock, LogIn } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, LogIn, Users } from "lucide-react";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -157,6 +157,29 @@ export default function LoginPage() {
             </motion.button>
           </form>
 
+          {/* ✅ STAFF LOGIN LINK - New Section */}
+          <div className="mt-6 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Users className="w-5 h-5 text-purple-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800">
+                  Are you a staff member?
+                </p>
+                <a
+                  href="/staff-login"
+                  className="text-sm text-purple-600 hover:text-purple-700 font-semibold inline-flex items-center gap-1 group"
+                >
+                  Click here to login
+                  <span className="inline-block transition-transform group-hover:translate-x-1">
+                    →
+                  </span>
+                </a>
+              </div>
+            </div>
+          </div>
+
           {/* Divider */}
           <div className="flex items-center my-8">
             <div className="flex-1 border-t border-gray-300" />
@@ -186,7 +209,7 @@ export default function LoginPage() {
           className="text-center mt-8"
         >
           <p className="text-gray-500 text-sm">
-            © {new Date().getFullYear()} SalonPro. All rights reserved.
+            © {new Date().getFullYear()} Onligro. All rights reserved.
           </p>
         </motion.div>
       </div>

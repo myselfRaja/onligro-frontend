@@ -43,49 +43,57 @@ const [discountType, setDiscountType] = useState('flat'); // 'flat' or 'percent'
   const [productTotal, setProductTotal] = useState(0);
 
   // ===== LOAD DATA (UPDATED) =====
-  async function loadData() {
-    setLoading(true);
-    try {
-      const [serviceRes, staffRes, billsRes, productRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/service/all`, { credentials: "include" }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/all`, { credentials: "include" }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/all`, { credentials: "include" }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/all`, { credentials: "include" }), // ✅ NEW
-      ]);
+async function loadData() {
+  setLoading(true);
+  try {
+    // ✅ Get salonId from user (localStorage)
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const salonId = user?.salonId || '';
 
-      const serviceData = await serviceRes.json();
-      const staffData = await staffRes.json();
-      const billsData = await billsRes.json();
-      const productData = await productRes.json(); // ✅ NEW
+    // ✅ Add salonId to all API calls
+    const [serviceRes, staffRes, billsRes, productRes] = await Promise.all([
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/service/all?salonId=${salonId}`, { credentials: "include" }),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/all?salonId=${salonId}`, { credentials: "include" }),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/all?salonId=${salonId}`, { credentials: "include" }),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/all?salonId=${salonId}`, { credentials: "include" }),
+    ]);
 
-      setServices(serviceData.services || []);
-      // 🔥 APPOINTMENT AUTO-FILL: Services set karo par prices empty rakho
-const appointmentServices = searchParams.get("services");
-if (appointmentServices && serviceData.services) {
-  const serviceIds = appointmentServices.split(",");
-  const prices = {};
-  serviceIds.forEach(id => {
-    prices[id] = ""; // Empty price - owner bharega
-  });
-  setServicePrices(prices);
-}
-      setStaff(staffData.staff || []);
-      setBills(billsData.bills || []);
-      setProducts(productData.products || []); // ✅ NEW
-      // 🔥 APPOINTMENT AUTO-FILL: Staff set karo agar URL se aaya hai
-const appointmentStaffId = searchParams.get("staffId");
-if (appointmentStaffId && staffData.staff) {
-  const staffExists = staffData.staff.find(s => s._id === appointmentStaffId);
-  if (staffExists) {
-    setForm(prev => ({ ...prev, staffId: appointmentStaffId }));
-  }
-}
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+    const serviceData = await serviceRes.json();
+    const staffData = await staffRes.json();
+    const billsData = await billsRes.json();
+    const productData = await productRes.json();
+
+    setServices(serviceData.services || []);
+    
+    // 🔥 APPOINTMENT AUTO-FILL: Services set karo par prices empty rakho
+    const appointmentServices = searchParams.get("services");
+    if (appointmentServices && serviceData.services) {
+      const serviceIds = appointmentServices.split(",");
+      const prices = {};
+      serviceIds.forEach(id => {
+        prices[id] = ""; // Empty price - owner bharega
+      });
+      setServicePrices(prices);
     }
+    
+    setStaff(staffData.staff || []);
+    setBills(billsData.bills || []);
+    setProducts(productData.products || []);
+    
+    // 🔥 APPOINTMENT AUTO-FILL: Staff set karo agar URL se aaya hai
+    const appointmentStaffId = searchParams.get("staffId");
+    if (appointmentStaffId && staffData.staff) {
+      const staffExists = staffData.staff.find(s => s._id === appointmentStaffId);
+      if (staffExists) {
+        setForm(prev => ({ ...prev, staffId: appointmentStaffId }));
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
   }
+}
 
   // ===== SERVICE TOTAL =====
 // ===== SERVICE TOTAL =====

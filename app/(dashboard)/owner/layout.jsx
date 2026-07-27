@@ -10,7 +10,7 @@ import { Loader } from "lucide-react";
 export default function OwnerDashboardLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [owner, setOwner] = useState(null);
+  const [user, setUser] = useState(null);  // ✅ owner → user
   const router = useRouter();
 
   useEffect(() => {
@@ -29,37 +29,46 @@ export default function OwnerDashboardLayout({ children }) {
     };
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      console.log("🟡 Checking authentication...");
-      
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify`, {
-        credentials: "include",
-      });
+ const checkAuth = async () => {
+  try {
+    console.log("🟡 Checking authentication...");
+    
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify`, {
+      credentials: "include",
+    });
 
-      console.log("🟢 Auth response status:", res.status);
+    console.log("🟢 Auth response status:", res.status);
 
-      if (!res.ok) {
-        throw new Error("Not authenticated");
-      }
-
-      const data = await res.json();
-      setOwner(data.owner);
-      console.log("✅ Authenticated as:", data.owner.name);
-      
-    } catch (error) {
-      console.error("🔴 Auth error:", error);
-      
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      router.push("/login");
-      router.refresh();
-      
-    } finally {
-      setLoading(false);
+    if (!res.ok) {
+      throw new Error("Not authenticated");
     }
-  };
+
+    const data = await res.json();
+    
+    // ✅ Support both 'user' and 'owner' keys
+    const userData = data.user || data.owner;
+    setUser(userData);
+    
+    // ✅ STORE USER IN LOCALSTORAGE (SIRF YEH LINE ADD KARO)
+    if (userData) {
+      localStorage.setItem('user', JSON.stringify(userData));
+    }
+    
+    console.log("✅ Authenticated as:", userData?.name);
+    
+  } catch (error) {
+    console.error("🔴 Auth error:", error);
+    
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    router.push("/login");
+    router.refresh();
+    
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading) {
     return (
@@ -72,31 +81,31 @@ export default function OwnerDashboardLayout({ children }) {
     );
   }
 
-  if (!owner) {
+  if (!user) {
     return null;
   }
 
- return (
-  <div className="flex min-h-screen">
-    {/* Desktop Sidebar */}
-    <div className="hidden md:block flex-shrink-0">
-      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-    </div>
-
-    {/* Main Area */}
-    <div className="flex-1 flex flex-col min-w-0 bg-[var(--color-bg)]">
-      <div className="p-4 md:p-6">
-        <Topbar ownerName={owner.name || "Owner"} />
+  return (
+    <div className="flex min-h-screen">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block flex-shrink-0">
+        <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       </div>
 
-      {/* Page Content */}
-      <div className="flex-1 px-4 md:px-6 pb-20 md:pb-4">
-        {children}
-      </div>
-    </div>
+      {/* Main Area */}
+      <div className="flex-1 flex flex-col min-w-0 bg-[var(--color-bg)]">
+        <div className="p-4 md:p-6">
+          <Topbar ownerName={user?.name || "Staff"} />
+        </div>
 
-    {/* Mobile Bottom Navigation */}
-    <BottomNav />
-  </div>
-);
+        {/* Page Content */}
+        <div className="flex-1 px-4 md:px-6 pb-20 md:pb-4">
+          {children}
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <BottomNav />
+    </div>
+  );
 }

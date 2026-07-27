@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Edit2, Trash2, Search, Users, Loader, UserPlus } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, Users, Loader, UserPlus, Key, Mail, Lock, CheckCircle, XCircle } from "lucide-react";
 
 export default function StaffPage() {
   const [staffList, setStaffList] = useState([]);
@@ -14,14 +14,23 @@ export default function StaffPage() {
   const [addModal, setAddModal] = useState(false);
   const [editModal, setEditModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
+  const [accessModal, setAccessModal] = useState(false); // ✅ NEW
   
   const [form, setForm] = useState({
     name: "",
     role: "",
+    email: "",
+    password: "",
   });
+  
+  // ✅ NEW: Access form state
+  const [accessForm, setAccessForm] = useState({
+    email: "",
+    password: "",
+  });
+  
   const [selectedStaff, setSelectedStaff] = useState(null);
 
-  // Role options
   const roleOptions = [
     "Hair Stylist",
     "Senior Hair Stylist",
@@ -49,13 +58,11 @@ export default function StaffPage() {
         credentials: "include",
       });
 
-    const data = await res.json();
+      const data = await res.json();
 
-if (res.ok) {
-  setStaffList(data.staff || []);
-  console.log("Staff Data:", data.staff);
-  console.log(data.staff[0]);
-}
+      if (res.ok) {
+        setStaffList(data.staff || []);
+      }
     } catch (error) {
       console.error("Failed to fetch staff:", error);
     } finally {
@@ -75,12 +82,17 @@ if (res.ok) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          name: form.name,
+          role: form.role,
+          email: form.email,
+          password: form.password,
+        }),
       });
 
       if (res.ok) {
         setAddModal(false);
-        setForm({ name: "", role: "" });
+        setForm({ name: "", role: "", email: "", password: "" });
         await fetchStaff();
       }
     } catch (error) {
@@ -98,16 +110,26 @@ if (res.ok) {
     setActionLoading("updating");
     
     try {
+      const updateData = {
+        name: form.name,
+        role: form.role,
+        email: form.email,
+      };
+      
+      if (form.password && form.password.trim() !== "") {
+        updateData.password = form.password;
+      }
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/update/${selectedStaff._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(form),
+        body: JSON.stringify(updateData),
       });
 
       if (res.ok) {
         setEditModal(false);
-        setForm({ name: "", role: "" });
+        setForm({ name: "", role: "", email: "", password: "" });
         setSelectedStaff(null);
         await fetchStaff();
       }
@@ -141,34 +163,80 @@ if (res.ok) {
       setActionLoading(null);
     }
   }
-async function toggleStaffStatus(staffId) {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/staff/toggle-status/${staffId}`,
-      {
-        method: "PUT",
-        credentials: "include",
-      }
-    );
 
-    if (res.ok) {
-      await fetchStaff();
+  // ===========================
+  // Toggle staff status
+  // ===========================
+  async function toggleStaffStatus(staffId) {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/staff/toggle-status/${staffId}`,
+        {
+          method: "PUT",
+          credentials: "include",
+        }
+      );
+
+      if (res.ok) {
+        await fetchStaff();
+      }
+    } catch (error) {
+      console.error("Failed to toggle staff status:", error);
     }
-  } catch (error) {
-    console.error("Failed to toggle staff status:", error);
   }
-}
+
+  // ===========================
+  // Set staff login access ✅ NEW
+  // ===========================
+  async function setStaffAccess(e) {
+    e.preventDefault();
+    setActionLoading("access");
+    
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/staff/${selectedStaff._id}/set-access`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            email: accessForm.email,
+            password: accessForm.password,
+          }),
+        }
+      );
+
+      if (res.ok) {
+        setAccessModal(false);
+        setAccessForm({ email: "", password: "" });
+        setSelectedStaff(null);
+        await fetchStaff();
+      } else {
+        const error = await res.json();
+        alert(error.message || "Failed to set login access");
+      }
+    } catch (error) {
+      console.error("Failed to set access:", error);
+      alert("Failed to set login access");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   // ===========================
   // Open edit modal
   // ===========================
   function openEditModal(staff) {
-    setSelectedStaff(staff);
-    setForm({
-      name: staff.name,
-      role: staff.role,
-    });
-    setEditModal(true);
-  }
+  setSelectedStaff(staff);
+  setForm({
+    name: staff.name,
+    role: staff.role,
+    email: staff.email || "",
+    password: "",
+    _id: staff._id,  // ✅ ADD THIS
+  });
+  setEditModal(true);
+}
 
   // ===========================
   // Open delete modal
@@ -177,6 +245,18 @@ async function toggleStaffStatus(staffId) {
     setSelectedStaff(staff);
     setDeleteModal(true);
   }
+
+  // ===========================
+  // Open access modal ✅ NEW
+  // ===========================
+ function openAccessModal(staff) {
+  setSelectedStaff(staff);
+  setAccessForm({
+    email: "",  // ✅ ALWAYS EMPTY
+    password: "", // ✅ ALWAYS EMPTY
+  });
+  setAccessModal(true);
+}
 
   // Filter staff based on search
   const filteredStaff = staffList.filter(staff =>
@@ -199,7 +279,7 @@ async function toggleStaffStatus(staffId) {
 
   return (
     <div className="p-6">
-      {/* HEADER SECTION */}
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Staff Management</h1>
@@ -207,7 +287,10 @@ async function toggleStaffStatus(staffId) {
         </div>
 
         <button
-          onClick={() => setAddModal(true)}
+          onClick={() => {
+            setForm({ name: "", role: "", email: "", password: "" });
+            setAddModal(true);
+          }}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
         >
           <UserPlus size={20} />
@@ -293,7 +376,10 @@ async function toggleStaffStatus(staffId) {
             </p>
             {!searchTerm && (
               <button
-                onClick={() => setAddModal(true)}
+                onClick={() => {
+                  setForm({ name: "", role: "", email: "", password: "" });
+                  setAddModal(true);
+                }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium"
               >
                 Add First Staff Member
@@ -341,30 +427,53 @@ async function toggleStaffStatus(staffId) {
                       </div>
 
                       <h4 className="font-semibold text-gray-900 text-lg mb-1">{staff.name}</h4>
-                      <p className="text-gray-600 text-sm mb-3">{staff.role}</p>
+                      <p className="text-gray-600 text-sm mb-1">{staff.role}</p>
                       
-                      <div className="flex gap-2 text-xs items-center">
-  {staff.isActive !== false ? (
-    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
-      Active
-    </span>
-  ) : (
-    <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
-      Inactive
-    </span>
-  )}
+                      {staff.email && (
+                        <p className="text-gray-500 text-xs mb-2">{staff.email}</p>
+                      )}
 
-  <button
-    onClick={() => toggleStaffStatus(staff._id)}
-    className={`px-2 py-1 rounded-full text-xs font-medium ${
-      staff.isActive !== false
-        ? "bg-red-100 text-red-700"
-        : "bg-green-100 text-green-700"
-    }`}
-  >
-    {staff.isActive !== false ? "Mark Inactive" : "Mark Active"}
-  </button>
-</div>
+                      {/* ✅ LOGIN STATUS + SET ACCESS BUTTON */}
+                      <div className="flex flex-wrap items-center gap-2 text-xs mt-2">
+                        {staff.loginEnabled ? (
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center gap-1">
+                            <CheckCircle size={12} /> Login Enabled
+                          </span>
+                        ) : (
+                          <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full flex items-center gap-1">
+                            <XCircle size={12} /> No Login
+                          </span>
+                        )}
+
+                        <button
+                          onClick={() => openAccessModal(staff)}
+                          className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all"
+                        >
+                          <Key size={12} className="inline mr-1" />
+                          {staff.loginEnabled ? "Change Access" : "Set Login"}
+                        </button>
+
+                        {staff.isActive !== false ? (
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                            Inactive
+                          </span>
+                        )}
+
+                        <button
+                          onClick={() => toggleStaffStatus(staff._id)}
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            staff.isActive !== false
+                              ? "bg-red-100 text-red-700"
+                              : "bg-green-100 text-green-700"
+                          }`}
+                        >
+                          {staff.isActive !== false ? "Mark Inactive" : "Mark Active"}
+                        </button>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -379,13 +488,17 @@ async function toggleStaffStatus(staffId) {
         {addModal && (
           <StaffModal
             title="Add Staff Member"
-            onClose={() => setAddModal(false)}
+            onClose={() => {
+              setAddModal(false);
+              setForm({ name: "", role: "", email: "", password: "" });
+            }}
             onSubmit={addStaff}
             loading={actionLoading === "adding"}
             submitText="Add Staff"
             form={form}
             setForm={setForm}
             roleOptions={roleOptions}
+            isEdit={false}
           />
         )}
       </AnimatePresence>
@@ -398,7 +511,7 @@ async function toggleStaffStatus(staffId) {
             onClose={() => {
               setEditModal(false);
               setSelectedStaff(null);
-              setForm({ name: "", role: "" });
+              setForm({ name: "", role: "", email: "", password: "" });
             }}
             onSubmit={updateStaff}
             loading={actionLoading === "updating"}
@@ -406,6 +519,7 @@ async function toggleStaffStatus(staffId) {
             form={form}
             setForm={setForm}
             roleOptions={roleOptions}
+            isEdit={true}
           />
         )}
       </AnimatePresence>
@@ -424,10 +538,31 @@ async function toggleStaffStatus(staffId) {
           />
         )}
       </AnimatePresence>
+
+      {/* ✅ SET ACCESS MODAL (NEW) */}
+      <AnimatePresence>
+        {accessModal && (
+          <SetAccessModal
+            staff={selectedStaff}
+            onClose={() => {
+              setAccessModal(false);
+              setSelectedStaff(null);
+              setAccessForm({ email: "", password: "" });
+            }}
+            onSubmit={setStaffAccess}
+            loading={actionLoading === "access"}
+            form={accessForm}
+            setForm={setAccessForm}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
+// ===========================
+// STAFF MODAL COMPONENT
+// ===========================
 // ===========================
 // STAFF MODAL COMPONENT
 // ===========================
@@ -453,6 +588,7 @@ function StaffModal({ title, onClose, onSubmit, loading, submitText, form, setFo
 
         <form onSubmit={onSubmit}>
           <div className="p-6 space-y-4">
+            {/* Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Staff Name *
@@ -460,19 +596,20 @@ function StaffModal({ title, onClose, onSubmit, loading, submitText, form, setFo
               <input
                 type="text"
                 placeholder="Enter staff member's name"
-                value={form.name}
+                value={form.name || ""}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
             </div>
 
+            {/* Role */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Role *
               </label>
               <select
-                value={form.role}
+                value={form.role || ""}
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
@@ -484,6 +621,48 @@ function StaffModal({ title, onClose, onSubmit, loading, submitText, form, setFo
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* ✅ Email Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address {!form._id && "*"}
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="email"
+                  placeholder="Enter staff email"
+                  value={form.email || ""}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required={!form._id}
+                />
+              </div>
+              {form._id && (
+                <p className="text-xs text-gray-500 mt-1">Leave blank to keep current email</p>
+              )}
+            </div>
+
+            {/* ✅ Password Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password {!form._id ? "*" : "(optional)"}
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="password"
+                  placeholder={form._id ? "New password (optional)" : "Enter password"}
+                  value={form.password || ""}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required={!form._id}
+                />
+              </div>
+              {form._id && (
+                <p className="text-xs text-gray-500 mt-1">Leave blank to keep current password</p>
+              )}
             </div>
           </div>
 
@@ -503,6 +682,114 @@ function StaffModal({ title, onClose, onSubmit, loading, submitText, form, setFo
             >
               {loading && <Loader className="animate-spin" size={16} />}
               {submitText}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ===========================
+// ===========================
+// ✅ SET ACCESS MODAL - FINAL FIX
+// ===========================
+function SetAccessModal({ staff, onClose, onSubmit, loading, form, setForm }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white rounded-2xl w-full max-w-md shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">
+            {staff?.loginEnabled ? "Change Login Access" : "Set Login Access"}
+          </h2>
+          <p className="text-sm text-gray-600 mt-1">
+            For: <strong>{staff?.name}</strong> ({staff?.role})
+          </p>
+        </div>
+
+        <form onSubmit={onSubmit}>
+          <div className="p-6 space-y-4">
+            {/* ✅ Email Field - DIRECT EMPTY */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address *
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="email"
+                  placeholder="Enter staff email"
+                  value={form.email || ""}
+                  onChange={(e) => {
+                    setForm({ ...form, email: e.target.value });
+                  }}
+                    autoComplete="off"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              {staff?.email && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Current: <span className="font-medium">{staff.email}</span>
+                </p>
+              )}
+            </div>
+
+            {/* ✅ Password Field - DIRECT EMPTY */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password *
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="password"
+                  placeholder="Enter new password"
+                  value={form.password || ""}
+                  onChange={(e) => {
+                    setForm({ ...form, password: e.target.value });
+                  }}
+                    autoComplete="off"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              {staff?.loginEnabled && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Leave blank to keep current password
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              {loading && <Loader className="animate-spin" size={16} />}
+              {staff?.loginEnabled ? "Update Access" : "Enable Login"}
             </button>
           </div>
         </form>
