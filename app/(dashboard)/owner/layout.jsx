@@ -31,40 +31,32 @@ export default function OwnerDashboardLayout({ children }) {
 
  const checkAuth = async () => {
   try {
-    console.log("🟡 Checking authentication...");
-    
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/verify`, {
       credentials: "include",
     });
 
-    console.log("🟢 Auth response status:", res.status);
-
     if (!res.ok) {
-      throw new Error("Not authenticated");
+      router.replace("/login");
+      return;
     }
 
     const data = await res.json();
-    
-    // ✅ Support both 'user' and 'owner' keys
     const userData = data.user || data.owner;
-    setUser(userData);
     
-    // ✅ STORE USER IN LOCALSTORAGE (SIRF YEH LINE ADD KARO)
-    if (userData) {
-      localStorage.setItem('user', JSON.stringify(userData));
+    // ✅ STAFF — SIRF BILLING ALLOW
+    if (userData?.role === "staff") {
+      const currentPath = window.location.pathname;
+      if (currentPath !== "/owner/billing") {
+        router.replace("/owner/billing");
+        return;
+      }
     }
-    
-    console.log("✅ Authenticated as:", userData?.name);
-    
+
+    setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
+
   } catch (error) {
-    console.error("🔴 Auth error:", error);
-    
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    router.push("/login");
-    router.refresh();
-    
+    router.replace("/login");
   } finally {
     setLoading(false);
   }
