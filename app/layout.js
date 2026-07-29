@@ -8,8 +8,8 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Onligro SaaS",
-  description: "Salon SaaS System",
+  title: "Onligro - Salon Management Software",
+  description: "Salon Management Software",
 };
 
 export default function RootLayout({ children }) {

@@ -19,7 +19,7 @@ export default function Topbar() {
   const [userData, setUserData] = useState(null);
   const [salonData, setSalonData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState("owner");
+   const [userRole, setUserRole] = useState(null);  
   const dropdownRef = useRef(null);
 
   // ✅ Fetch user data from localStorage first
@@ -70,28 +70,42 @@ export default function Topbar() {
   }, [userRole]);
 
   // 🔥 Socket.io - Real-time notifications (Only for owner)
-  useEffect(() => {
-    // Staff ke liye socket mat chalao
-    if (userRole === "staff") return;
+ useEffect(() => {
+  // Staff ke liye socket mat chalao
+  if (userRole === "staff") return;
 
-    const socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000");
+  const socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000", {
+    transports: ["websocket", "polling"],
+    withCredentials: true,
+  });
+
+  socket.on("connect", () => {
+    console.log("✅ Socket connected:", socket.id);
+  });
+
+  socket.on("new_appointment", (data) => {
+    console.log("📅 New appointment:", data);
+    const newNotif = {
+      id: Date.now(),
+      message: `📅 New booking: ${data.appointment?.customerName || "Customer"}`,
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    };
     
-    socket.on("new_appointment", (data) => {
-      const newNotif = {
-        id: Date.now(),
-        message: `📅 New booking: ${data.appointment?.customerName || "Customer"}`,
-        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
-      };
-      
-      setNotifications(prev => [newNotif, ...prev].slice(0, 5));
-      
-      setTimeout(() => {
-        setNotifications(prev => prev.filter(n => n.id !== newNotif.id));
-      }, 10000);
-    });
+    setNotifications(prev => [newNotif, ...prev].slice(0, 5));
     
-    return () => socket.disconnect();
-  }, [userRole]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== newNotif.id));
+    }, 10000);
+  });
+
+  socket.on("connect_error", (err) => {
+    console.error("❌ Socket connection error:", err);
+  });
+
+  return () => {
+    socket.disconnect();
+  };
+}, [userRole]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

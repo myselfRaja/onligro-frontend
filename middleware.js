@@ -14,7 +14,7 @@ export async function middleware(request) {
     "/owner/staff",
     "/owner/salon",
     "/owner/hours",
-    "/owner/appointments",
+    // "/owner/appointments",
   ];
 
   // ✅ Check if path is restricted

@@ -48,10 +48,11 @@ export default function BottomNav() {
     { name: "Appts", href: "/owner/appointments", icon: "📅" },
   ];
 
-  // ✅ Staff Tabs (Sirf Billing)
-  const staffTabs = [
-    { name: "Billing", href: "/owner/billing", icon: "💳" },
-  ];
+ // ✅ Staff Tabs (Billing + Appointments)
+const staffTabs = [
+  { name: "Billing", href: "/owner/billing", icon: "💳" },
+  { name: "Appts", href: "/owner/appointments", icon: "📅" },  // ✅ ADD THIS LINE
+];
 
   const tabs = userRole === "staff" ? staffTabs : ownerTabs;
 

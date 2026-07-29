@@ -23,6 +23,7 @@ const allMenuItems = [
 // ---- STAFF MENU ITEMS ----
 const staffMenuItems = [
   { name: "Billing", href: "/owner/billing", icon: "💳" },
+  { name: "Appointments", href: "/owner/appointments", icon: "📅" },  // ✅ ADD THIS LINE
 ];
 
 export default function Sidebar({ collapsed, setCollapsed }) {

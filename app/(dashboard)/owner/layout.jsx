@@ -43,14 +43,15 @@ export default function OwnerDashboardLayout({ children }) {
     const data = await res.json();
     const userData = data.user || data.owner;
     
-    // ✅ STAFF — SIRF BILLING ALLOW
-    if (userData?.role === "staff") {
-      const currentPath = window.location.pathname;
-      if (currentPath !== "/owner/billing") {
-        router.replace("/owner/billing");
-        return;
-      }
-    }
+   // ✅ STAFF — BILLING + APPOINTMENTS ALLOW
+if (userData?.role === "staff") {
+  const currentPath = window.location.pathname;
+  // ✅ Billing OR Appointments allow — baaki sab redirect
+  if (currentPath !== "/owner/billing" && currentPath !== "/owner/appointments") {
+    router.replace("/owner/billing");
+    return;
+  }
+}
 
     setUser(userData);
     localStorage.setItem("user", JSON.stringify(userData));
