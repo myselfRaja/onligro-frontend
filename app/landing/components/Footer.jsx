@@ -1,41 +1,43 @@
 import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer className="relative bg-gradient-to-b from-gray-900 to-black text-white overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-          backgroundSize: '40px 40px'
-        }}></div>
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+            backgroundSize: "40px 40px",
+          }}
+        ></div>
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-        
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-16 mb-12">
-          
           {/* Brand Section */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">S</span>
+                <span className="text-white font-bold text-lg">O</span>
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                SalonFlow
+                Onligro
               </span>
             </div>
             <p className="text-gray-400 text-lg leading-relaxed mb-6 max-w-md">
-              Revolutionizing salon management with AI-powered booking, smart scheduling, and business analytics.
+              Complete salon management software — billing, inventory, staff, customers, reports, and WhatsApp reminders. All from one dashboard.
             </p>
-            
+
             {/* Social Links */}
             <div className="flex gap-4">
               {[
-                { name: 'Twitter', icon: '𝕏', url: '#' },
-                { name: 'LinkedIn', icon: 'in', url: '#' },
-                { name: 'Instagram', icon: '📷', url: '#' },
-                { name: 'YouTube', icon: '▶️', url: '#' }
+                { name: "Twitter", icon: "𝕏", url: "#" },
+                { name: "LinkedIn", icon: "in", url: "#" },
+                { name: "Instagram", icon: "📷", url: "#" },
+                { name: "YouTube", icon: "▶️", url: "#" },
               ].map((social) => (
                 <a
                   key={social.name}
@@ -57,25 +59,30 @@ export default function Footer() {
               <span className="w-2 h-2 bg-pink-500 rounded-full"></span>
               Product
             </h3>
-           <div className="space-y-4">
-  <Link
-    href="/about"
-    className="block text-gray-400 hover:text-white transition-colors duration-200 hover:translate-x-1 transform"
-  >
-    About
-  </Link>
+            <div className="space-y-4">
+              <Link
+                href="/about"
+                className="block text-gray-400 hover:text-white transition-colors duration-200 hover:translate-x-1 transform"
+              >
+                About
+              </Link>
 
-  {['Features', 'Pricing', 'Case Studies', 'API Docs', 'Changelog'].map((item) => (
-    <a
-      key={item}
-      href="#"
-      className="block text-gray-400 hover:text-white transition-colors duration-200 hover:translate-x-1 transform"
-    >
-      {item}
-    </a>
-  ))}
-</div>
-
+              {[
+                "Features",
+                "Pricing",
+                "Case Studies",
+                "API Docs",
+                "Changelog",
+              ].map((item) => (
+                <a
+                  key={item}
+                  href="#"
+                  className="block text-gray-400 hover:text-white transition-colors duration-200 hover:translate-x-1 transform"
+                >
+                  {item}
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* Solutions */}
@@ -85,7 +92,13 @@ export default function Footer() {
               Solutions
             </h3>
             <div className="space-y-4">
-              {['For Salons', 'For Spas', 'Enterprise', 'Beauty Chains', 'Startups'].map((item) => (
+              {[
+                "For Salons",
+                "For Spas",
+                "Beauty Chains",
+                "Freelancers",
+                "Startups",
+              ].map((item) => (
                 <a
                   key={item}
                   href="#"
@@ -104,7 +117,13 @@ export default function Footer() {
               Support
             </h3>
             <div className="space-y-4">
-              {['Help Center', 'Contact Sales', 'Community', 'Status', 'Training'].map((item) => (
+              {[
+                "Help Center",
+                "Contact Sales",
+                "Community",
+                "Status",
+                "Training",
+              ].map((item) => (
                 <a
                   key={item}
                   href="#"
@@ -115,7 +134,6 @@ export default function Footer() {
               ))}
             </div>
           </div>
-
         </div>
 
         {/* Newsletter Section - Full Width */}
@@ -124,10 +142,10 @@ export default function Footer() {
             {/* Text Content */}
             <div className="flex-1">
               <h3 className="text-xl font-semibold text-white mb-2">
-                Stay Updated with SalonFlow
+                Stay Updated with Onligro
               </h3>
               <p className="text-gray-400 text-lg">
-                Get the latest features, updates, and beauty industry insights delivered to your inbox.
+                Get the latest features, updates, and salon management tips delivered to your inbox.
               </p>
             </div>
 
@@ -150,41 +168,45 @@ export default function Footer() {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             {/* Copyright */}
             <div className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} SalonFlow Technologies. All rights reserved.
+              © {new Date().getFullYear()} Onligro Technologies. All rights reserved.
             </div>
 
             {/* Legal Links */}
             <div className="flex flex-wrap gap-6 text-sm">
-             <Link
-  href="/about"
-  className="text-gray-500 hover:text-gray-300 transition-colors duration-200"
->
-  About
-</Link>
+              <Link
+                href="/about"
+                className="text-gray-500 hover:text-gray-300 transition-colors duration-200"
+              >
+                About
+              </Link>
 
-{['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Security', 'Compliance'].map((item) => (
-  <a
-    key={item}
-    href="#"
-    className="text-gray-500 hover:text-gray-300 transition-colors duration-200"
-  >
-    {item}
-  </a>
-))}
-
+              {[
+                "Privacy Policy",
+                "Terms of Service",
+                "Cookie Policy",
+                "Security",
+                "Compliance",
+              ].map((item) => (
+                <a
+                  key={item}
+                  href="#"
+                  className="text-gray-500 hover:text-gray-300 transition-colors duration-200"
+                >
+                  {item}
+                </a>
+              ))}
             </div>
 
             {/* Trust Badges */}
             <div className="flex items-center gap-4 text-xs text-gray-500">
               <span>🔒 SSL Secured</span>
               <span>•</span>
-              <span>🌍 Global</span>
+              <span>🇮🇳 Made in India</span>
               <span>•</span>
-              <span>⭐ 4.9/5 Rating</span>
+              <span>⭐ Trusted by Salons</span>
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Gradient Ornaments */}

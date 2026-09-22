@@ -10,6 +10,10 @@ export default function BillingPage() {
   const [services, setServices] = useState([]);
   // ===== SERVICE PRICE EDITING =====
 const [servicePrices, setServicePrices] = useState({});
+const [serviceNames, setServiceNames] = useState({});
+const [customerSuggestions, setCustomerSuggestions] = useState([]);
+const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
   const [staff, setStaff] = useState([]);
   const [bills, setBills] = useState([]);
   const [visibleCount, setVisibleCount] = useState(10);
@@ -95,6 +99,34 @@ async function loadData() {
   }
 }
 
+// ✅ Customer search (debounced)
+useEffect(() => {
+  if (!form.customerName || form.customerName.length < 2) {
+    setCustomerSuggestions([]);
+    setShowCustomerDropdown(false);
+    return;
+  }
+
+  const timer = setTimeout(async () => {
+    setCustomerSearchLoading(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/customers/search?query=${form.customerName}`,
+        { credentials: "include" }
+      );
+      const data = await res.json();
+      setCustomerSuggestions(data.customers || []);
+      setShowCustomerDropdown(true);
+    } catch (err) {
+      console.error("Customer search failed:", err);
+    } finally {
+      setCustomerSearchLoading(false);
+    }
+  }, 300);
+
+  return () => clearTimeout(timer);
+}, [form.customerName]);
+
   // ===== SERVICE TOTAL =====
 // ===== SERVICE TOTAL =====
 useEffect(() => {
@@ -149,25 +181,29 @@ useEffect(() => {
     }
 
     setCreatingBill(true);
-
- const billData = {
+const billData = {
   customerName: form.customerName,
   customerPhone: form.customerPhone,
-  services: form.services.map(id => ({
-    serviceId: id,
-    price: servicePrices[id] !== undefined ? servicePrices[id] : services.find(s => s._id === id)?.price || 0
-  })),
+  services: form.services.map(id => {
+    const service = services.find(s => s._id === id);
+    return {
+      serviceId: id,
+      serviceName: serviceNames[id] !== undefined ? serviceNames[id] : service?.name,
+      price: servicePrices[id] !== undefined ? servicePrices[id] : service?.price || 0
+    };
+  }),
   staffId: form.staffId,
-  finalAmount: Number(grandTotal),  // ← Auto-calculated
+  finalAmount: Number(grandTotal),
   paymentMode: form.paymentMode,
   products: selectedProducts.map(p => ({
     productId: p.productId,
+    productName: p.name,
     quantity: p.quantity,
     price: p.price
   })),
   discount: discountAmount,
   discountType: discountType,
-    appointmentId: searchParams.get("appointmentId") || null, // ← YE LINE ADD KARO
+  appointmentId: searchParams.get("appointmentId") || null,
 };
 
     try {
@@ -197,6 +233,7 @@ useEffect(() => {
   setDiscountType('percent'); // ← By default percent hi rahega
   // 🔥 SERVICE PRICES RESET KARO
   setServicePrices({});
+  setServiceNames({});
   loadData();
 
       } else {
@@ -238,7 +275,15 @@ const grandTotal = useMemo(() => {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showStaffDropdown]);
-
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (!event.target.closest('.customer-search-container')) {
+      setShowCustomerDropdown(false);
+    }
+  };
+  document.addEventListener('click', handleClickOutside);
+  return () => document.removeEventListener('click', handleClickOutside);
+}, []);
   useEffect(() => {
     if (showReceiptModal && currentBill && receiptRef.current && !isMobile) {
       const timer = setTimeout(() => {
@@ -362,10 +407,60 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
               
               <form onSubmit={createBill} className="space-y-4 sm:space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
-                    <input type="text" value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm sm:text-base" placeholder="Enter customer name" required />
-                  </div>
+                 <div className="relative customer-search-container">
+  <label className="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
+  <input
+    type="text"
+    value={form.customerName}
+    onChange={(e) => setForm({ ...form, customerName: e.target.value })}
+    onFocus={() => form.customerName.length >= 2 && setShowCustomerDropdown(true)}
+    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+    placeholder="Type customer name..."
+    required
+  />
+
+  {/* ✅ Suggestions Dropdown */}
+  {showCustomerDropdown && customerSuggestions.length > 0 && (
+    <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+      {customerSuggestions.map((customer) => (
+        <button
+          key={customer._id}
+          type="button"
+          onClick={() => {
+            setForm(prev => ({
+              ...prev,
+              customerName: customer.name,
+              customerPhone: customer.phone
+            }));
+            setShowCustomerDropdown(false);
+            setCustomerSuggestions([]);
+          }}
+          className="w-full px-4 py-3 text-left hover:bg-blue-50 transition border-b border-gray-100 last:border-0 flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+              {customer.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-medium text-gray-900 text-sm">{customer.name}</p>
+              <p className="text-xs text-gray-500">📞 {customer.phone}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-400">{customer.totalVisits || 0} visits</p>
+          </div>
+        </button>
+      ))}
+    </div>
+  )}
+
+  {/* Loading */}
+  {customerSearchLoading && (
+    <div className="absolute right-3 top-10">
+      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  )}
+</div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
                     <input type="tel" value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })} className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm sm:text-base" placeholder="10 digit mobile number" required />
@@ -405,8 +500,22 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                      {services.filter((s) => form.services.includes(s._id)).map((service) => (
   <div key={service._id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-blue-100 mb-1">
     <div className="flex items-center gap-2 flex-1 flex-wrap">
-      <span className="text-sm font-medium text-gray-800">{service.name}</span>
-      <span className="text-gray-400">-</span>
+
+      {/* ✅ Editable Service Name */}
+      <input
+        type="text"
+        value={serviceNames[service._id] !== undefined ? serviceNames[service._id] : service.name}
+        onChange={(e) => {
+          setServiceNames(prev => ({
+            ...prev,
+            [service._id]: e.target.value
+          }));
+        }}
+        className="flex-1 min-w-[100px] px-2 py-1 border border-gray-200 rounded text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        placeholder="Service name"
+      />
+
+      {/* ✅ Editable Price */}
       <input
         type="number"
         value={servicePrices[service._id] !== undefined ? (servicePrices[service._id] === '' ? '' : servicePrices[service._id]) : service.price}
@@ -422,6 +531,7 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
         min="0"
       />
     </div>
+
     <button 
       type="button" 
       onClick={() => {
@@ -430,6 +540,12 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
           const newPrices = { ...prev };
           delete newPrices[service._id];
           return newPrices;
+        });
+        // ✅ Name bhi clear karo
+        setServiceNames(prev => {
+          const newNames = { ...prev };
+          delete newNames[service._id];
+          return newNames;
         });
       }} 
       className="text-red-400 hover:text-red-600 ml-2"
@@ -472,44 +588,77 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                         <p className="text-sm font-medium text-green-700">📦 {selectedProducts.length} Product{selectedProducts.length > 1 ? 's' : ''} Selected</p>
                         <button type="button" onClick={() => setSelectedProducts([])} className="text-xs text-red-500 hover:text-red-700 font-medium">Clear All</button>
                       </div>
-                   {selectedProducts.map((p) => (
+           {selectedProducts.map((p) => (
   <div key={p.productId} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100 mb-1 flex-wrap gap-2">
-    <span className="text-sm font-medium text-gray-800 flex-1 min-w-[80px]">{p.name}</span>
+
+    {/* ✅ Editable Product Name */}
+    <input
+      type="text"
+      value={p.name}
+      onChange={(e) => {
+        setSelectedProducts(prev =>
+          prev.map(sp =>
+            sp.productId === p.productId
+              ? { ...sp, name: e.target.value }
+              : sp
+          )
+        );
+      }}
+      className="flex-1 min-w-[80px] px-2 py-1 border border-gray-200 rounded text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+      placeholder="Product name"
+    />
+
+    {/* ✅ Editable Price */}
     <input
       type="number"
       value={p.price}
       onChange={(e) => {
         const newPrice = Number(e.target.value) || 0;
-        setSelectedProducts(selectedProducts.map(sp => 
-          sp.productId === p.productId ? { ...sp, price: newPrice } : sp
-        ));
+        setSelectedProducts(prev =>
+          prev.map(sp =>
+            sp.productId === p.productId ? { ...sp, price: newPrice } : sp
+          )
+        );
       }}
       className="w-16 sm:w-20 px-2 py-1 border border-gray-200 rounded text-xs text-center"
       min="0"
     />
-   <input 
-  type="number" 
-  value={p.quantity} 
-  onChange={(e) => { 
-    const val = e.target.value;
-    if (val === '') {
-      setSelectedProducts(selectedProducts.map(sp => 
-        sp.productId === p.productId ? { ...sp, quantity: '' } : sp
-      ));
-    } else {
-      const qty = parseInt(val) || 0;
-      if (qty >= 0) {
-        setSelectedProducts(selectedProducts.map(sp => 
-          sp.productId === p.productId ? { ...sp, quantity: qty } : sp
-        ));
-      }
-    }
-  }} 
-  className="w-12 px-1 py-0.5 border border-gray-200 rounded text-xs text-center" 
-  min="0" 
-  max={p.stock} 
-/>
-    <button type="button" onClick={() => setSelectedProducts(selectedProducts.filter(sp => sp.productId !== p.productId))} className="text-red-400 hover:text-red-600 ml-2">✕</button>
+
+    {/* ✅ Editable Quantity */}
+    <input
+      type="number"
+      value={p.quantity}
+      onChange={(e) => {
+        const val = e.target.value;
+        if (val === '') {
+          setSelectedProducts(prev =>
+            prev.map(sp =>
+              sp.productId === p.productId ? { ...sp, quantity: '' } : sp
+            )
+          );
+        } else {
+          const qty = parseInt(val) || 0;
+          if (qty >= 0) {
+            setSelectedProducts(prev =>
+              prev.map(sp =>
+                sp.productId === p.productId ? { ...sp, quantity: qty } : sp
+              )
+            );
+          }
+        }
+      }}
+      className="w-12 px-1 py-0.5 border border-gray-200 rounded text-xs text-center"
+      min="0"
+      max={p.stock}
+    />
+
+    <button
+      type="button"
+      onClick={() => setSelectedProducts(selectedProducts.filter(sp => sp.productId !== p.productId))}
+      className="text-red-400 hover:text-red-600 ml-2"
+    >
+      ✕
+    </button>
   </div>
 ))}
                     </div>
