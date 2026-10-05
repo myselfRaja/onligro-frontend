@@ -11,6 +11,8 @@ export default function BillingPage() {
   // ===== SERVICE PRICE EDITING =====
 const [servicePrices, setServicePrices] = useState({});
 const [serviceNames, setServiceNames] = useState({});
+const [selectedServices, setSelectedServices] = useState([]);
+const [openStaffDropdown, setOpenStaffDropdown] = useState(null);
 const [customerSuggestions, setCustomerSuggestions] = useState([]);
 const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
@@ -129,14 +131,20 @@ useEffect(() => {
 
   // ===== SERVICE TOTAL =====
 // ===== SERVICE TOTAL =====
+// useEffect(() => {
+//   const selected = services.filter((service) => form.services.includes(service._id));
+//   const total = selected.reduce((sum, service) => {
+//     const price = servicePrices[service._id] !== undefined ? servicePrices[service._id] : service.price;
+//     return sum + price;
+//   }, 0);
+//   setServiceTotal(total);
+// }, [form.services, services, servicePrices]); // ← servicePrices ADD KARO
+
+// ✅ Naya: selectedServices se total
 useEffect(() => {
-  const selected = services.filter((service) => form.services.includes(service._id));
-  const total = selected.reduce((sum, service) => {
-    const price = servicePrices[service._id] !== undefined ? servicePrices[service._id] : service.price;
-    return sum + price;
-  }, 0);
+  const total = selectedServices.reduce((sum, s) => sum + s.line_total, 0);
   setServiceTotal(total);
-}, [form.services, services, servicePrices]); // ← servicePrices ADD KARO
+}, [selectedServices]);
 
   // ===== 🔥 NEW: PRODUCT TOTAL =====
   useEffect(() => {
@@ -159,93 +167,103 @@ useEffect(() => {
   };
 
   // ===== 🔥 NEW: CREATE BILL (UPDATED) =====
-  async function createBill(e) {
-    e.preventDefault();
-    if (creatingBill) return;
-    if (!form.customerName || form.customerName.trim() === '') {
-      alert("👤 Please enter customer name");
+ async function createBill(e) {
+  e.preventDefault();
+  if (creatingBill) return;
+
+  // ✅ Customer validation
+  if (!form.customerName || form.customerName.trim() === '') {
+    alert("👤 Please enter customer name");
+    return;
+  }
+  if (!/^\d{10}$/.test(form.customerPhone)) {
+    alert("📞 Enter valid 10 digit phone number");
+    return;
+  }
+
+  // ✅ Service/Product validation
+  if (selectedServices.length === 0 && selectedProducts.length === 0) {
+    alert("💇 Please select at least one service or product");
+    return;
+  }
+
+  // ✅ Har service me kam se kam 1 staff hona chahiye
+  for (const service of selectedServices) {
+    if (!service.staff_ids || service.staff_ids.length === 0) {
+      alert(`👨‍💼 Please assign staff for "${service.serviceName}"`);
       return;
-    }
-    if (!/^\d{10}$/.test(form.customerPhone)) {
-      alert("📞 Enter valid 10 digit phone number");
-      return;
-    }
-   
-    if (form.services.length === 0 && selectedProducts.length === 0) { 
-      alert("💇 Please select at least one service or product");
-      return;
-    }
-    if (!form.staffId) {
-      alert("👨‍💼 Please select a staff member");
-      return;
-    }
-
-    setCreatingBill(true);
-const billData = {
-  customerName: form.customerName,
-  customerPhone: form.customerPhone,
-  services: form.services.map(id => {
-    const service = services.find(s => s._id === id);
-    return {
-      serviceId: id,
-      serviceName: serviceNames[id] !== undefined ? serviceNames[id] : service?.name,
-      price: servicePrices[id] !== undefined ? servicePrices[id] : service?.price || 0
-    };
-  }),
-  staffId: form.staffId,
-  finalAmount: Number(grandTotal),
-  paymentMode: form.paymentMode,
-  products: selectedProducts.map(p => ({
-    productId: p.productId,
-    productName: p.name,
-    quantity: p.quantity,
-    price: p.price
-  })),
-  discount: discountAmount,
-  discountType: discountType,
-  appointmentId: searchParams.get("appointmentId") || null,
-};
-
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/add`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(billData),
-      });
-
-      const data = await res.json();
-
-    if (res.ok) {
-  setCurrentBill(data.bill);
-  setShowReceiptModal(true);
-  setForm({
-    customerName: "",
-    customerPhone: "",
-    services: [],
-    staffId: "",
-    paymentMode: "Cash",
-  });
-  setSelectedProducts([]);
-  setSearchService("");
-  // 🔥 DISCOUNT RESET KARO
-  setDiscountAmount(0);
-  setDiscountType('percent'); // ← By default percent hi rahega
-  // 🔥 SERVICE PRICES RESET KARO
-  setServicePrices({});
-  setServiceNames({});
-  loadData();
-
-      } else {
-        alert(data.message || "Failed to create bill");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong");
-    } finally {
-      setCreatingBill(false);
     }
   }
+
+  setCreatingBill(true);
+
+  const billData = {
+    customerName: form.customerName,
+    customerPhone: form.customerPhone,
+    services: selectedServices.map(s => ({
+      serviceId: s.serviceId,
+      serviceName: s.serviceName,
+      unit_price: s.unit_price,
+      quantity: s.quantity,
+      line_total: s.line_total,
+      staff_ids: s.staff_ids,
+      staff_names: s.staff_names,
+    })),
+    finalAmount: Number(grandTotal),
+    paymentMode: form.paymentMode,
+    products: selectedProducts.map(p => ({
+      productId: p.productId,
+      productName: p.name,
+      quantity: p.quantity,
+      price: p.price
+    })),
+    discount: discountAmount,
+    discountType: discountType,
+    appointmentId: searchParams.get("appointmentId") || null,
+  };
+
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/add`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(billData),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setCurrentBill(data.bill);
+      setShowReceiptModal(true);
+
+      // ✅ Reset form
+      setForm({
+        customerName: "",
+        customerPhone: "",
+        services: [],
+        staffId: "",
+        paymentMode: "Cash",
+      });
+      setSelectedServices([]);
+      setSelectedProducts([]);
+      setSearchService("");
+      setDiscountAmount(0);
+      setDiscountType("percent");
+      setServicePrices({});
+      setServiceNames({});
+      setOpenStaffDropdown(null);
+      loadData();
+
+    } else {
+      alert(data.message || "Failed to create bill");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong");
+  } finally {
+    setCreatingBill(false);
+  }
+}
 // ===== GRAND TOTAL =====
 useEffect(() => {
   setTotalAmount(serviceTotal + productTotal);
@@ -275,6 +293,18 @@ const grandTotal = useMemo(() => {
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showStaffDropdown]);
+
+  // ✅ Per-service staff dropdown band karne ke liye
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (!event.target.closest('.service-staff-dropdown')) {
+      setOpenStaffDropdown(null);
+    }
+  };
+  document.addEventListener('click', handleClickOutside);
+  return () => document.removeEventListener('click', handleClickOutside);
+}, []);
+
 useEffect(() => {
   const handleClickOutside = (event) => {
     if (!event.target.closest('.customer-search-container')) {
@@ -476,86 +506,266 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                     {searchService && (<button type="button" onClick={() => setSearchService("")} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">✕</button>)}
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 max-h-80 overflow-y-auto">
-                    {displayedServices.length === 0 ? (<div className="col-span-full text-center text-gray-400 py-8">No services found</div>) : (
-                      displayedServices.map((service) => (
-                        <button key={service._id} type="button" onClick={() => {
-                          if (form.services.includes(service._id)) {
-                            setForm({ ...form, services: form.services.filter(id => id !== service._id) });
-                          } else {
-                            setForm({ ...form, services: [...form.services, service._id] });
-                          }
-                        }} className={`p-2 sm:p-3 rounded-xl text-left transition-all text-sm sm:text-base ${form.services.includes(service._id) ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 border-2 border-gray-200 hover:border-blue-300'}`}>
-                          <div className="font-medium">{service.name}</div>
-                          <div className={`text-sm mt-1 ${form.services.includes(service._id) ? 'text-blue-100' : 'text-blue-600'}`}>₹{service.price}</div>
-                        </button>
-                      ))
-                    )}
+                   {displayedServices.map((service) => {
+  const isSelected = selectedServices.some(s => s.serviceId === service._id);
+  return (
+    <button
+      key={service._id}
+      type="button"
+      onClick={() => {
+        if (isSelected) {
+          setSelectedServices(prev => prev.filter(s => s.serviceId !== service._id));
+        } else {
+          const newService = {
+            serviceId: service._id,
+            serviceName: service.name,
+            unit_price: service.price,
+            quantity: 1,
+            line_total: service.price,
+            staff_ids: [],
+            staff_names: [],
+            duration: service.duration,
+          };
+
+          setSelectedServices(prev => {
+            if (prev.length > 0 && prev[prev.length - 1].staff_ids.length > 0) {
+              const lastService = prev[prev.length - 1];
+              newService.staff_ids = [...lastService.staff_ids];
+              newService.staff_names = [...lastService.staff_names];
+            }
+            return [...prev, newService];
+          });
+
+          setOpenStaffDropdown(service._id);
+        }
+      }}
+      className={`p-2 sm:p-3 rounded-xl text-left transition-all text-sm sm:text-base ${
+        isSelected
+          ? 'bg-blue-600 text-white shadow-md'
+          : 'bg-gray-50 border-2 border-gray-200 hover:border-blue-300'
+      }`}
+    >
+      <div className="font-medium">{service.name}</div>
+      <div className={`text-sm mt-1 ${isSelected ? 'text-blue-100' : 'text-blue-600'}`}>
+        ₹{service.price}
+      </div>
+    </button>
+  );
+})}
                   </div>
-                  {form.services.length > 0 && (
-                    <div className="mt-4 border border-blue-200 bg-blue-50/50 rounded-xl p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium text-blue-700">📌 {form.services.length} Service{form.services.length > 1 ? 's' : ''} Selected</p>
-                        <button type="button" onClick={() => setForm({ ...form, services: [] })} className="text-xs text-red-500 hover:text-red-700 font-medium">Clear All</button>
-                      </div>
-                     {services.filter((s) => form.services.includes(s._id)).map((service) => (
-  <div key={service._id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-blue-100 mb-1">
-    <div className="flex items-center gap-2 flex-1 flex-wrap">
-
-      {/* ✅ Editable Service Name */}
-      <input
-        type="text"
-        value={serviceNames[service._id] !== undefined ? serviceNames[service._id] : service.name}
-        onChange={(e) => {
-          setServiceNames(prev => ({
-            ...prev,
-            [service._id]: e.target.value
-          }));
-        }}
-        className="flex-1 min-w-[100px] px-2 py-1 border border-gray-200 rounded text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder="Service name"
-      />
-
-      {/* ✅ Editable Price */}
-      <input
-        type="number"
-        value={servicePrices[service._id] !== undefined ? (servicePrices[service._id] === '' ? '' : servicePrices[service._id]) : service.price}
-        onChange={(e) => {
-          const val = e.target.value;
-          if (val === '') {
-            setServicePrices(prev => ({ ...prev, [service._id]: '' }));
-          } else {
-            setServicePrices(prev => ({ ...prev, [service._id]: Number(val) }));
-          }
-        }}
-        className="w-16 sm:w-20 px-2 py-1 border border-gray-200 rounded text-sm text-center"
-        min="0"
-      />
+                {selectedServices.length > 0 && (
+  <div className="mt-4 border border-blue-200 bg-blue-50/50 rounded-xl p-3">
+    <div className="flex items-center justify-between mb-2">
+      <p className="text-sm font-medium text-blue-700">
+        📌 {selectedServices.length} Service{selectedServices.length > 1 ? 's' : ''} Selected
+      </p>
+      <button
+        type="button"
+        onClick={() => setSelectedServices([])}
+        className="text-xs text-red-500 hover:text-red-700 font-medium"
+      >
+        Clear All
+      </button>
     </div>
 
-    <button 
-      type="button" 
-      onClick={() => {
-        setForm({ ...form, services: form.services.filter((id) => id !== service._id) });
-        setServicePrices(prev => {
-          const newPrices = { ...prev };
-          delete newPrices[service._id];
-          return newPrices;
-        });
-        // ✅ Name bhi clear karo
-        setServiceNames(prev => {
-          const newNames = { ...prev };
-          delete newNames[service._id];
-          return newNames;
-        });
-      }} 
-      className="text-red-400 hover:text-red-600 ml-2"
+    {selectedServices.map((service) => (
+      <div
+        key={service.serviceId}
+        className="bg-white rounded-lg px-3 py-2 border border-blue-100 mb-2"
+      >
+        {/* Row 1: Name + Price + Remove */}
+        <div className="flex items-center gap-2 mb-2">
+          <input
+            type="text"
+            value={service.serviceName}
+            onChange={(e) => {
+              setSelectedServices(prev =>
+                prev.map(s =>
+                  s.serviceId === service.serviceId
+                    ? { ...s, serviceName: e.target.value }
+                    : s
+                )
+              );
+            }}
+            className="flex-1 px-2 py-1 border border-gray-200 rounded text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          <input
+            type="number"
+            value={service.unit_price}
+            onChange={(e) => {
+              const newPrice = Number(e.target.value) || 0;
+              setSelectedServices(prev =>
+                prev.map(s =>
+                  s.serviceId === service.serviceId
+                    ? { ...s, unit_price: newPrice, line_total: newPrice * s.quantity }
+                    : s
+                )
+              );
+            }}
+            className="w-20 px-2 py-1 border border-gray-200 rounded text-sm text-center"
+            min="0"
+          />
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedServices(prev =>
+                prev.filter(s => s.serviceId !== service.serviceId)
+              );
+            }}
+            className="text-red-400 hover:text-red-600"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Row 2: Quantity + Line Total */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1 border border-gray-200 rounded-lg">
+            <button
+              type="button"
+              onClick={() => {
+                const newQty = Math.max(1, service.quantity - 1);
+                setSelectedServices(prev =>
+                  prev.map(s =>
+                    s.serviceId === service.serviceId
+                      ? { ...s, quantity: newQty, line_total: s.unit_price * newQty }
+                      : s
+                  )
+                );
+              }}
+              className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+            >
+              −
+            </button>
+            <span className="px-3 py-1 text-sm font-medium min-w-[30px] text-center">
+              {service.quantity}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const newQty = service.quantity + 1;
+                setSelectedServices(prev =>
+                  prev.map(s =>
+                    s.serviceId === service.serviceId
+                      ? { ...s, quantity: newQty, line_total: s.unit_price * newQty }
+                      : s
+                  )
+                );
+              }}
+              className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+            >
+              +
+            </button>
+          </div>
+
+          <span className="text-sm font-semibold text-gray-800">
+            ₹{service.line_total}
+          </span>
+
+          {/* ✅ Staff Multi-Select Dropdown */}
+<div className="relative flex-1 min-w-[180px] service-staff-dropdown">
+  <button
+    type="button"
+    onClick={() =>
+      setOpenStaffDropdown(
+        openStaffDropdown === service.serviceId ? null : service.serviceId
+      )
+    }
+    className={`w-full px-3 py-1.5 rounded-lg border text-left text-sm flex items-center justify-between ${
+      service.staff_ids.length === 0
+        ? "border-red-300 bg-red-50 text-red-600"
+        : "border-gray-200 bg-white text-gray-800"
+    }`}
+  >
+    <span className="truncate">
+      {service.staff_ids.length === 0
+        ? "⚠️ Select Staff"
+        : `👨‍💼 ${service.staff_names.join(", ")}`}
+    </span>
+    <svg
+      className="w-3 h-3"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
     >
-      ✕
-    </button>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M19 9l-7 7-7-7"
+      />
+    </svg>
+  </button>
+
+  {openStaffDropdown === service.serviceId && (
+    <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+      {staff.map((member) => {
+        const isSelected = service.staff_ids.includes(member._id);
+        return (
+          <button
+            key={member._id}
+            type="button"
+            onClick={() => {
+              setSelectedServices(prev =>
+                prev.map(s => {
+                  if (s.serviceId !== service.serviceId) return s;
+
+                  if (isSelected) {
+                    // Remove
+                    return {
+                      ...s,
+                      staff_ids: s.staff_ids.filter(id => id !== member._id),
+                      staff_names: s.staff_names.filter(n => n !== member.name),
+                    };
+                  } else {
+                    // Add
+                    return {
+                      ...s,
+                      staff_ids: [...s.staff_ids, member._id],
+                      staff_names: [...s.staff_names, member.name],
+                    };
+                  }
+                })
+              );
+            }}
+            className={`w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center justify-between text-sm ${
+              isSelected ? "bg-blue-50 text-blue-600" : "text-gray-700"
+            }`}
+          >
+            <div>
+              <p className="font-medium">{member.name}</p>
+              <p className="text-xs text-gray-400">
+                {member.role || "Staff"}
+              </p>
+            </div>
+            {isSelected && (
+              <svg
+                className="w-4 h-4 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  )}
+</div>
+        </div>
+      </div>
+    ))}
   </div>
-))}
-                    </div>
-                  )}
+)}
                 </div>
 
                 {/* ===== PRODUCTS SECTION ===== */}
@@ -566,21 +776,46 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                     <span className="absolute left-3 top-3 text-gray-400">🔍</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 max-h-48 overflow-y-auto">
-                    {products.filter(p => p.stockQuantity > 0 && p.name.toLowerCase().includes(searchProduct.toLowerCase())).slice(0, 12).map((product) => {
-                      const isSelected = selectedProducts.find(p => p.productId === product._id);
-                      return (
-                        <button key={product._id} type="button" onClick={() => {
-                          if (isSelected) {
-                            setSelectedProducts(selectedProducts.filter(p => p.productId !== product._id));
-                          } else {
-                            setSelectedProducts([...selectedProducts, { productId: product._id, name: product.name, price: product.mrp, quantity: 1, stock: product.stockQuantity }]);
-                          }
-                        }} className={`p-2 rounded-xl text-left transition-all text-sm ${isSelected ? 'bg-green-600 text-white shadow-md' : 'bg-gray-50 border-2 border-gray-200 hover:border-green-300'}`}>
-                          <div className="font-medium text-xs sm:text-sm">{product.name}</div>
-                          <div className={`text-xs ${isSelected ? 'text-green-100' : 'text-gray-500'}`}>₹{product.mrp} | Stock: {product.stockQuantity}</div>
-                        </button>
-                      );
-                    })}
+                {products.filter(p => p.name.toLowerCase().includes(searchProduct.toLowerCase())).slice(0, 12).map((product) => {
+  const isSelected = selectedProducts.find(p => p.productId === product._id);
+  const isOutOfStock = product.stockQuantity <= 0;
+
+  return (
+    <button
+      key={product._id}
+      type="button"
+      disabled={isOutOfStock}
+      onClick={() => {
+        if (isOutOfStock) return;
+        if (isSelected) {
+          setSelectedProducts(selectedProducts.filter(p => p.productId !== product._id));
+        } else {
+          setSelectedProducts([...selectedProducts, { productId: product._id, name: product.name, price: product.mrp, quantity: 1, stock: product.stockQuantity }]);
+        }
+      }}
+      className={`p-2 rounded-xl text-left transition-all text-sm ${
+        isOutOfStock
+          ? 'bg-gray-100 border-2 border-gray-200 opacity-50 cursor-not-allowed'
+          : isSelected
+          ? 'bg-green-600 text-white shadow-md'
+          : 'bg-gray-50 border-2 border-gray-200 hover:border-green-300'
+      }`}
+    >
+      <div className={`font-medium text-xs sm:text-sm ${isOutOfStock ? 'text-gray-400' : ''}`}>
+        {product.name}
+      </div>
+      <div className={`text-xs ${
+        isOutOfStock
+          ? 'text-red-500'
+          : isSelected
+          ? 'text-green-100'
+          : 'text-gray-500'
+      }`}>
+        ₹{product.mrp} | {isOutOfStock ? '❌ Out of Stock' : `Stock: ${product.stockQuantity}`}
+      </div>
+    </button>
+  );
+})}
                   </div>
                   {selectedProducts.length > 0 && (
                     <div className="mt-3 border border-green-200 bg-green-50/50 rounded-xl p-3">
@@ -665,38 +900,26 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                   )}
                 </div>
 
-                {/* ===== STAFF + PAYMENT ===== */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Assign Staff *</label>
-                    <div className="relative staff-select-container">
-                      <button type="button" onClick={() => setShowStaffDropdown(!showStaffDropdown)} className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-left flex items-center justify-between text-sm sm:text-base">
-                        <span className={form.staffId ? "text-gray-800" : "text-gray-400"}>{form.staffId ? staff.find(m => m._id === form.staffId)?.name : "Select staff member"}</span>
-                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${showStaffDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                      </button>
-                      {showStaffDropdown && (
-                        <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                          <button type="button" onClick={() => { setForm({ ...form, staffId: "" }); setShowStaffDropdown(false); }} className="w-full px-4 py-3 text-left hover:bg-gray-50 transition border-b border-gray-100 text-gray-400 text-sm">Select staff member</button>
-                          {staff.map((member) => (
-                            <button key={member._id} type="button" onClick={() => { setForm({ ...form, staffId: member._id }); setShowStaffDropdown(false); }} className={`w-full px-4 py-3 text-left hover:bg-blue-50 transition flex items-center justify-between ${form.staffId === member._id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'} text-sm`}>
-                              <div><p className="font-medium">{member.name}</p><p className="text-xs text-gray-400">{member.role || 'Staff'}</p></div>
-                              {form.staffId === member._id && (<svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>)}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Payment Mode *</label>
-                    <div className="flex gap-2 sm:gap-3">
-                      {['Cash', 'UPI', 'Card'].map((mode) => (
-                        <button key={mode} type="button" onClick={() => setForm({ ...form, paymentMode: mode })} className={`flex-1 py-2 sm:py-2.5 rounded-xl font-medium transition-all text-sm sm:text-base ${form.paymentMode === mode ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-blue-300'}`}>{mode}</button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
+               {/* ===== PAYMENT MODE ===== */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">Payment Mode *</label>
+  <div className="flex gap-2 sm:gap-3">
+    {['Cash', 'UPI', 'Card'].map((mode) => (
+      <button
+        key={mode}
+        type="button"
+        onClick={() => setForm({ ...form, paymentMode: mode })}
+        className={`flex-1 py-2 sm:py-2.5 rounded-xl font-medium transition-all text-sm sm:text-base ${
+          form.paymentMode === mode
+            ? 'bg-blue-600 text-white shadow-md'
+            : 'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-blue-300'
+        }`}
+      >
+        {mode}
+      </button>
+    ))}
+  </div>
+</div>
                 {/* ===== FINAL AMOUNT ===== */}
                 <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
                   <div className="flex justify-between items-center mb-2">
@@ -763,17 +986,20 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                   </div>
                 </div>
                     
-                <button 
-                  type="submit" 
-                  disabled={(form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || creatingBill}
-                  className={`w-full text-white font-semibold py-2.5 sm:py-3 rounded-xl text-base sm:text-lg no-print transition ${
-                    (form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || creatingBill 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
-                >
-                  {creatingBill ? 'Creating Bill...' : '💾 Save & Print Bill'}
-                </button>
+              <button 
+  type="submit" 
+  disabled={
+    (selectedServices.length === 0 && selectedProducts.length === 0) || 
+    creatingBill
+  }
+  className={`w-full text-white font-semibold py-2.5 sm:py-3 rounded-xl text-base sm:text-lg no-print transition ${
+    (selectedServices.length === 0 && selectedProducts.length === 0) || creatingBill
+      ? 'bg-gray-400 cursor-not-allowed' 
+      : 'bg-blue-600 hover:bg-blue-700'
+  }`}
+>
+  {creatingBill ? 'Creating Bill...' : '💾 Save & Print Bill'}
+</button>
               </form>
             </div>
           </div>
@@ -794,7 +1020,43 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                           <div><p className="font-semibold text-gray-900 text-sm sm:text-base">{bill.customerName}</p><p className="text-xs text-gray-500">{bill.billNumber}</p></div>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${bill.paymentMode === 'Cash' ? 'bg-green-100 text-green-700' : bill.paymentMode === 'UPI' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{bill.paymentMode}</span>
                         </div>
-                        <div className="flex justify-between items-center"><p className="text-sm text-gray-600">{bill.staffName}</p><p className="text-lg font-bold text-blue-600">₹{bill.finalAmount}</p></div>
+                     <div className="flex justify-between items-center gap-2">
+  <div className="flex-1 min-w-0">
+    {(() => {
+      // ✅ Saare staff ke naam nikaalo
+      const allStaffNames = [];
+      if (bill.services && bill.services.length > 0) {
+        bill.services.forEach((service) => {
+          (service.staff_names || []).forEach((name) => {
+            if (name && !allStaffNames.includes(name)) {
+              allStaffNames.push(name);
+            }
+          });
+        });
+      }
+      // Fallback — purana format
+      if (allStaffNames.length === 0 && bill.staffName) {
+        allStaffNames.push(bill.staffName);
+      }
+
+      return allStaffNames.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {allStaffNames.map((name, idx) => (
+            <span
+              key={idx}
+              className="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-medium rounded-full border border-blue-100 truncate max-w-full"
+            >
+              {name}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-600">Staff</p>
+      );
+    })()}
+  </div>
+  <p className="text-lg font-bold text-blue-600 flex-shrink-0">₹{bill.finalAmount}</p>
+</div>
                         <p className="text-xs text-gray-400 mt-1">{new Date(bill.createdAt).toLocaleDateString()}</p>
                       </div>
                     ))}

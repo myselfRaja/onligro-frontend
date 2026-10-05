@@ -220,37 +220,82 @@ setCustomerInsights({
 });
 
         // 7. ✅ Recent Bills (last 7)
+               // 7. ✅ Recent Bills (last 7)
         const recentBillsList = todayBillsList
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
           .slice(0, 7)
-          .map((bill) => ({
-            customerName: bill.customerName || "Unknown",
-            amount: bill.finalAmount || 0,
-            services: bill.services?.map(s => s.serviceName) || [],
-            products: bill.products || [], 
-            staffName: bill.staffName || "Staff",
-            createdAt: bill.createdAt,
-            paymentMode: bill.paymentMode,
-          }));
+          .map((bill) => {
+            // ✅ Saare staff ke naam nikaalo (multi-staff support)
+            const allStaffNames = [];
+            if (bill.services && bill.services.length > 0) {
+              bill.services.forEach((service) => {
+                (service.staff_names || []).forEach((name) => {
+                  if (name && !allStaffNames.includes(name)) {
+                    allStaffNames.push(name);
+                  }
+                });
+              });
+            }
+
+            // ✅ Fallback — purana format
+            if (allStaffNames.length === 0 && bill.staffName) {
+              allStaffNames.push(bill.staffName);
+            }
+
+            return {
+              customerName: bill.customerName || "Unknown",
+              amount: bill.finalAmount || 0,
+              services: bill.services?.map(s => s.serviceName) || [],
+              products: bill.products || [],
+              staffNames: allStaffNames,        // ✅ Array
+              staffName: allStaffNames[0] || "Staff",  // backward compat
+              createdAt: bill.createdAt,
+              paymentMode: bill.paymentMode,
+            };
+          });
+
+        
 
         setRecentBills(recentBillsList);
-
-        // 8. ✅ Staff Performance (from bills)
+        // 8. ✅ Staff Performance (from bills) — PER-SERVICE SPLIT
         const staffMap = {};
 
         staffList.forEach((staff) => {
           staffMap[staff._id.toString()] = {
             name: staff.name,
             billsHandled: 0,
-              revenue: 0,  // ✅ ADD THIS
+            revenue: 0,
           };
         });
 
-        todayBillsList.forEach((bill) => {
-          const id = bill.staffId?.toString();
-          if (id && staffMap[id]) {
-            staffMap[id].billsHandled++;
-             staffMap[id].revenue += bill.finalAmount || 0;
+              todayBillsList.forEach((bill) => {
+          // ✅ Naya format: har service ka apna staff_ids
+          if (bill.services && bill.services.length > 0) {
+            bill.services.forEach((service) => {
+              const staffIds = service.staff_ids || [];
+              const staffCount = staffIds.length;
+              
+              if (staffCount === 0) return;
+
+              const lineTotal = service.line_total || (service.price * (service.quantity || 1));
+              const share = lineTotal / staffCount;
+              const serviceCount = service.quantity || 1;
+
+              staffIds.forEach((staffId) => {
+                const id = staffId.toString();
+                if (staffMap[id]) {
+                  staffMap[id].billsHandled += serviceCount;
+                  staffMap[id].revenue += share;
+                }
+              });
+            });
+          } else {
+            // Purana format (backward compatibility)
+            const id = bill.staffId?.toString();
+            if (id && staffMap[id]) {
+              staffMap[id].billsHandled++;
+              staffMap[id].revenue += bill.finalAmount || 0;
+            }
           }
         });
 

@@ -86,8 +86,8 @@ export default function DashboardContent({
   const hasPaymentData = paymentSplit.cash > 0 || paymentSplit.upi > 0 || paymentSplit.card > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-x-hidden">
+  <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 w-full">
         
         {/* Header */}
         <motion.div 
@@ -184,7 +184,7 @@ export default function DashboardContent({
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6"
         >
           {/* Revenue Card */}
           <motion.div 
@@ -275,16 +275,16 @@ export default function DashboardContent({
 
         {/* ===== MAIN SECTION: RECENT BILLS + STAFF ON DUTY ===== */}
         {/* Same as before - Recent Bills on left, Staff on right */}
-        <div className="grid lg:grid-cols-3 gap-6">
+     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           
           {/* LEFT: Recent Bills (Takes 2/3 space) - Same design as before */}
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2"
-          >
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+         <motion.div 
+  initial={{ opacity: 0, x: -20 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ delay: 0.2 }}
+  className="lg:col-span-2 min-w-0"
+>
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden w-full">
               {/* Header */}
               <div className="px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
                 <div className="flex items-center justify-between">
@@ -314,7 +314,7 @@ export default function DashboardContent({
                   recentBills.slice(0, 9).map((bill, i) => (
                     <div
                       key={i}
-                      className="px-4 py-2.5 transition-all duration-200 hover:bg-gray-50/80"
+                      className="px-3 sm:px-4 py-2.5 transition-all duration-200 hover:bg-gray-50/80"
                     >
                       {/* Desktop Layout */}
                       <div className="hidden sm:flex sm:items-center sm:gap-4">
@@ -346,47 +346,76 @@ export default function DashboardContent({
       {bill.products?.length > 0 && bill.products.map(p => `${p.productName} ×${p.quantity}`).join(' + ')}
       {(!bill.services || bill.services.length === 0) && (!bill.products || bill.products.length === 0) && 'Service'}
     </span>
-    <span className="text-gray-300">•</span>
-    <span className="text-xs text-gray-500">{bill.staffName || 'Staff'}</span>
+       <span className="text-gray-300">•</span>
+    <span className="text-xs text-gray-500 flex items-center gap-1 flex-wrap">
+      {bill.staffNames && bill.staffNames.length > 0 ? (
+        bill.staffNames.map((name, idx) => (
+          <span key={idx} className="inline-flex items-center gap-0.5">
+            <User size={10} className="text-gray-400" />
+            <span>{name}</span>
+            {idx < bill.staffNames.length - 1 && <span className="text-gray-300">,</span>}
+          </span>
+        ))
+      ) : (
+        <span>{bill.staffName || 'Staff'}</span>
+      )}
+    </span>
   </div>
 </div>
                       </div>
 
                       {/* Mobile Layout */}
                      
-<div className="sm:hidden space-y-1.5">
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-2">
-      <span className="text-sm font-semibold text-gray-800">
-        {new Date(bill.createdAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </span>
-      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-        Completed
-      </span>
-    </div>
+{/* Mobile Layout - Redesigned */}
+<div className="sm:hidden">
+  {/* Row 1: Time + Status */}
+  <div className="flex items-center justify-between mb-2">
+    <span className="text-sm font-semibold text-gray-800">
+      {new Date(bill.createdAt).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}
+    </span>
+    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+      Completed
+    </span>
   </div>
-  <div>
-    <div className="space-y-0.5">
-      <div className="flex items-center gap-2 text-sm flex-wrap">
-        <span className="font-medium text-gray-800">{bill.customerName}</span>
-        <span className="text-gray-400">·</span>
-        <span className="text-gray-600 font-semibold">₹{bill.amount}</span>
-      </div>
-      <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
-        {/* 🔥 SERVICE + PRODUCT DONO DIKHAO */}
-        <span>
-          {bill.services?.length > 0 && bill.services.join(' + ')}
-          {bill.services?.length > 0 && bill.products?.length > 0 && ' + '}
-          {bill.products?.length > 0 && bill.products.map(p => `${p.productName} ×${p.quantity}`).join(' + ')}
-          {(!bill.services || bill.services.length === 0) && (!bill.products || bill.products.length === 0) && 'Service'}
+
+  {/* Row 2: Customer + Amount */}
+  <div className="flex items-center justify-between mb-2">
+    <span className="font-semibold text-gray-900 text-sm truncate max-w-[60%]">
+      {bill.customerName}
+    </span>
+    <span className="font-bold text-gray-800 text-sm">
+      ₹{bill.amount}
+    </span>
+  </div>
+
+  {/* Row 3: Services */}
+  <div className="text-xs text-gray-600 mb-2 line-clamp-2">
+    {bill.services?.length > 0 && bill.services.join(' + ')}
+    {bill.services?.length > 0 && bill.products?.length > 0 && ' + '}
+    {bill.products?.length > 0 && bill.products.map(p => `${p.productName} ×${p.quantity}`).join(' + ')}
+    {(!bill.services || bill.services.length === 0) && (!bill.products || bill.products.length === 0) && 'Service'}
+  </div>
+
+  {/* Row 4: Staff Names - CHIPS */}
+  <div className="flex items-center gap-1 flex-wrap">
+    <User size={12} className="text-gray-400 flex-shrink-0" />
+    {bill.staffNames && bill.staffNames.length > 0 ? (
+      bill.staffNames.map((name, idx) => (
+        <span
+          key={idx}
+          className="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-medium rounded-full border border-blue-100"
+        >
+          {name}
         </span>
-        <span className="text-gray-300">•</span>
-        <span>{bill.staffName || 'Staff'}</span>
-      </div>
-    </div>
+      ))
+    ) : (
+      <span className="inline-flex items-center px-2 py-0.5 bg-gray-50 text-gray-600 text-[10px] font-medium rounded-full border border-gray-200">
+        {bill.staffName || 'Staff'}
+      </span>
+    )}
   </div>
 </div>
                     </div>
@@ -397,12 +426,12 @@ export default function DashboardContent({
           </motion.div>
 
           {/* RIGHT: Staff on Duty */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="space-y-4"
-          >
+         <motion.div 
+  initial={{ opacity: 0, x: 20 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ delay: 0.3 }}
+  className="space-y-3 sm:space-y-4 min-w-0"
+>
            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
   <div className="flex items-center justify-between mb-3">
     <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -442,7 +471,7 @@ export default function DashboardContent({
   </div>
 </div>
             {/* Payment Split + Customer Insights - Compact with Borders */}
-            <div className="grid grid-cols-2 gap-2">
+           <div className="grid grid-cols-2 gap-2 sm:gap-3">
               {/* Payment Split Card - Green Border */}
               <div className="bg-white rounded-xl border border-green-200 p-3 shadow-sm">
                 <p className="text-[10px] font-medium text-green-600 uppercase tracking-wider mb-2">💳 Payments</p>
@@ -483,7 +512,7 @@ export default function DashboardContent({
                 <Zap size={14} />
                 Quick Actions
               </h2>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                 <button 
                   onClick={() => router.push('/owner/billing')}
                   className="bg-white/20 hover:bg-white/30 px-2 py-2 rounded-lg text-xs font-medium transition flex flex-col items-center gap-1"
