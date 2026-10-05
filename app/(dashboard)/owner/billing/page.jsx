@@ -568,202 +568,206 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
       </button>
     </div>
 
-    {selectedServices.map((service) => (
-      <div
-        key={service.serviceId}
-        className="bg-white rounded-lg px-3 py-2 border border-blue-100 mb-2"
-      >
-        {/* Row 1: Name + Price + Remove */}
-        <div className="flex items-center gap-2 mb-2">
-          <input
-            type="text"
-            value={service.serviceName}
-            onChange={(e) => {
-              setSelectedServices(prev =>
-                prev.map(s =>
-                  s.serviceId === service.serviceId
-                    ? { ...s, serviceName: e.target.value }
-                    : s
-                )
-              );
-            }}
-            className="flex-1 px-2 py-1 border border-gray-200 rounded text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <input
-            type="number"
-            value={service.unit_price}
-            onChange={(e) => {
-              const newPrice = Number(e.target.value) || 0;
-              setSelectedServices(prev =>
-                prev.map(s =>
-                  s.serviceId === service.serviceId
-                    ? { ...s, unit_price: newPrice, line_total: newPrice * s.quantity }
-                    : s
-                )
-              );
-            }}
-            className="w-20 px-2 py-1 border border-gray-200 rounded text-sm text-center"
-            min="0"
-          />
-
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedServices(prev =>
-                prev.filter(s => s.serviceId !== service.serviceId)
-              );
-            }}
-            className="text-red-400 hover:text-red-600"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Row 2: Quantity + Line Total */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1 border border-gray-200 rounded-lg">
-            <button
-              type="button"
-              onClick={() => {
-                const newQty = Math.max(1, service.quantity - 1);
-                setSelectedServices(prev =>
-                  prev.map(s =>
-                    s.serviceId === service.serviceId
-                      ? { ...s, quantity: newQty, line_total: s.unit_price * newQty }
-                      : s
-                  )
-                );
-              }}
-              className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-            >
-              −
-            </button>
-            <span className="px-3 py-1 text-sm font-medium min-w-[30px] text-center">
-              {service.quantity}
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                const newQty = service.quantity + 1;
-                setSelectedServices(prev =>
-                  prev.map(s =>
-                    s.serviceId === service.serviceId
-                      ? { ...s, quantity: newQty, line_total: s.unit_price * newQty }
-                      : s
-                  )
-                );
-              }}
-              className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-            >
-              +
-            </button>
-          </div>
-
-          <span className="text-sm font-semibold text-gray-800">
-            ₹{service.line_total}
-          </span>
-
-          {/* ✅ Staff Multi-Select Dropdown */}
-<div className="relative flex-1 min-w-[180px] service-staff-dropdown">
-  <button
-    type="button"
-    onClick={() =>
-      setOpenStaffDropdown(
-        openStaffDropdown === service.serviceId ? null : service.serviceId
-      )
-    }
-    className={`w-full px-3 py-1.5 rounded-lg border text-left text-sm flex items-center justify-between ${
-      service.staff_ids.length === 0
-        ? "border-red-300 bg-red-50 text-red-600"
-        : "border-gray-200 bg-white text-gray-800"
-    }`}
+   {selectedServices.map((service) => (
+  <div
+    key={service.serviceId}
+    className="bg-white rounded-lg px-3 py-2 border border-blue-100 mb-2"
   >
-    <span className="truncate">
-      {service.staff_ids.length === 0
-        ? "⚠️ Select Staff"
-        : `👨‍💼 ${service.staff_names.join(", ")}`}
-    </span>
-    <svg
-      className="w-3 h-3"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M19 9l-7 7-7-7"
+    {/* Row 1: Name + Remove */}
+    <div className="flex items-center gap-2 mb-2">
+      <input
+        type="text"
+        value={service.serviceName}
+        onChange={(e) => {
+          setSelectedServices(prev =>
+            prev.map(s =>
+              s.serviceId === service.serviceId
+                ? { ...s, serviceName: e.target.value }
+                : s
+            )
+          );
+        }}
+        className="flex-1 min-w-0 px-2 py-1 border border-gray-200 rounded text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
-    </svg>
-  </button>
 
-  {openStaffDropdown === service.serviceId && (
-    <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-      {staff.map((member) => {
-        const isSelected = service.staff_ids.includes(member._id);
-        return (
-          <button
-            key={member._id}
-            type="button"
-            onClick={() => {
-              setSelectedServices(prev =>
-                prev.map(s => {
-                  if (s.serviceId !== service.serviceId) return s;
-
-                  if (isSelected) {
-                    // Remove
-                    return {
-                      ...s,
-                      staff_ids: s.staff_ids.filter(id => id !== member._id),
-                      staff_names: s.staff_names.filter(n => n !== member.name),
-                    };
-                  } else {
-                    // Add
-                    return {
-                      ...s,
-                      staff_ids: [...s.staff_ids, member._id],
-                      staff_names: [...s.staff_names, member.name],
-                    };
-                  }
-                })
-              );
-            }}
-            className={`w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center justify-between text-sm ${
-              isSelected ? "bg-blue-50 text-blue-600" : "text-gray-700"
-            }`}
-          >
-            <div>
-              <p className="font-medium">{member.name}</p>
-              <p className="text-xs text-gray-400">
-                {member.role || "Staff"}
-              </p>
-            </div>
-            {isSelected && (
-              <svg
-                className="w-4 h-4 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            )}
-          </button>
-        );
-      })}
+      <button
+        type="button"
+        onClick={() => {
+          setSelectedServices(prev =>
+            prev.filter(s => s.serviceId !== service.serviceId)
+          );
+        }}
+        className="text-red-400 hover:text-red-600 flex-shrink-0"
+      >
+        ✕
+      </button>
     </div>
-  )}
-</div>
-        </div>
+
+    {/* Row 2: Price + Quantity + Line Total */}
+    <div className="flex items-center gap-2 flex-wrap mb-2">
+      {/* ✅ Price — ab Row 2 me */}
+      <div className="flex items-center gap-1">
+        <span className="text-xs text-gray-500">₹</span>
+        <input
+          type="number"
+          value={service.unit_price}
+          onChange={(e) => {
+            const newPrice = Number(e.target.value) || 0;
+            setSelectedServices(prev =>
+              prev.map(s =>
+                s.serviceId === service.serviceId
+                  ? { ...s, unit_price: newPrice, line_total: newPrice * s.quantity }
+                  : s
+              )
+            );
+          }}
+          className="w-16 px-1.5 py-1 border border-gray-200 rounded text-sm text-center"
+          min="0"
+        />
       </div>
-    ))}
+
+      {/* Quantity Stepper */}
+      <div className="flex items-center gap-1 border border-gray-200 rounded-lg">
+        <button
+          type="button"
+          onClick={() => {
+            const newQty = Math.max(1, service.quantity - 1);
+            setSelectedServices(prev =>
+              prev.map(s =>
+                s.serviceId === service.serviceId
+                  ? { ...s, quantity: newQty, line_total: s.unit_price * newQty }
+                  : s
+              )
+            );
+          }}
+          className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+        >
+          −
+        </button>
+        <span className="px-2 py-1 text-sm font-medium min-w-[25px] text-center">
+          {service.quantity}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            const newQty = service.quantity + 1;
+            setSelectedServices(prev =>
+              prev.map(s =>
+                s.serviceId === service.serviceId
+                  ? { ...s, quantity: newQty, line_total: s.unit_price * newQty }
+                  : s
+              )
+            );
+          }}
+          className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+        >
+          +
+        </button>
+      </div>
+
+      {/* Line Total */}
+      <span className="text-sm font-semibold text-gray-800">
+        ₹{service.line_total}
+      </span>
+    </div>
+
+    {/* Row 3: Staff Dropdown */}
+    <div className="relative service-staff-dropdown">
+      <button
+        type="button"
+        onClick={() =>
+          setOpenStaffDropdown(
+            openStaffDropdown === service.serviceId ? null : service.serviceId
+          )
+        }
+        className={`w-full px-3 py-1.5 rounded-lg border text-left text-sm flex items-center justify-between ${
+          service.staff_ids.length === 0
+            ? "border-red-300 bg-red-50 text-red-600"
+            : "border-gray-200 bg-white text-gray-800"
+        }`}
+      >
+        <span className="truncate">
+          {service.staff_ids.length === 0
+            ? "⚠️ Select Staff"
+            : `👨‍💼 ${service.staff_names.join(", ")}`}
+        </span>
+        <svg
+          className="w-3 h-3 flex-shrink-0"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+
+      {openStaffDropdown === service.serviceId && (
+        <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+          {staff.map((member) => {
+            const isSelected = service.staff_ids.includes(member._id);
+            return (
+              <button
+                key={member._id}
+                type="button"
+                onClick={() => {
+                  setSelectedServices(prev =>
+                    prev.map(s => {
+                      if (s.serviceId !== service.serviceId) return s;
+
+                      if (isSelected) {
+                        return {
+                          ...s,
+                          staff_ids: s.staff_ids.filter(id => id !== member._id),
+                          staff_names: s.staff_names.filter(n => n !== member.name),
+                        };
+                      } else {
+                        return {
+                          ...s,
+                          staff_ids: [...s.staff_ids, member._id],
+                          staff_names: [...s.staff_names, member.name],
+                        };
+                      }
+                    })
+                  );
+                }}
+                className={`w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center justify-between text-sm ${
+                  isSelected ? "bg-blue-50 text-blue-600" : "text-gray-700"
+                }`}
+              >
+                <div>
+                  <p className="font-medium">{member.name}</p>
+                  <p className="text-xs text-gray-400">
+                    {member.role || "Staff"}
+                  </p>
+                </div>
+                {isSelected && (
+                  <svg
+                    className="w-4 h-4 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </div>
+))}
   </div>
 )}
                 </div>
