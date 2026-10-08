@@ -258,12 +258,13 @@ setCustomerInsights({
 
         setRecentBills(recentBillsList);
         // 8. ✅ Staff Performance (from bills) — PER-SERVICE SPLIT
-        const staffMap = {};
+             const staffMap = {};
 
         staffList.forEach((staff) => {
           staffMap[staff._id.toString()] = {
             name: staff.name,
             billsHandled: 0,
+            servicesDone: 0,   // ✅ Naya field
             revenue: 0,
           };
         });
@@ -271,6 +272,9 @@ setCustomerInsights({
               todayBillsList.forEach((bill) => {
           // ✅ Naya format: har service ka apna staff_ids
           if (bill.services && bill.services.length > 0) {
+            // ✅ Bill-level staff tracker (unique per bill)
+            const billStaffTracker = new Set();
+
             bill.services.forEach((service) => {
               const staffIds = service.staff_ids || [];
               const staffCount = staffIds.length;
@@ -284,7 +288,17 @@ setCustomerInsights({
               staffIds.forEach((staffId) => {
                 const id = staffId.toString();
                 if (staffMap[id]) {
-                  staffMap[id].billsHandled += serviceCount;
+                  // ✅ Har bill me sirf 1 baar count karo
+                  const billKey = `${bill._id}-${id}`;
+                  if (!billStaffTracker.has(billKey)) {
+                    staffMap[id].billsHandled += 1;
+                    billStaffTracker.add(billKey);
+                  }
+                  
+                  // ✅ Services count alag
+                  staffMap[id].servicesDone += serviceCount;
+                  
+                  // ✅ Revenue
                   staffMap[id].revenue += share;
                 }
               });
@@ -293,7 +307,8 @@ setCustomerInsights({
             // Purana format (backward compatibility)
             const id = bill.staffId?.toString();
             if (id && staffMap[id]) {
-              staffMap[id].billsHandled++;
+              staffMap[id].billsHandled += 1;
+              staffMap[id].servicesDone += 1;   // ✅ Purane me 1 service
               staffMap[id].revenue += bill.finalAmount || 0;
             }
           }

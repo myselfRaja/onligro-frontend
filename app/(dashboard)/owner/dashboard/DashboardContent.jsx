@@ -440,11 +440,11 @@ export default function DashboardContent({
     </h2>
     <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{totalStaff} Active</span>
   </div>
-  <div className="space-y-2">
-    {staffStatus.length === 0 ? (
-      <p className="text-xs text-gray-400 text-center py-2">No staff scheduled</p>
-    ) : (
-      staffStatus.slice(0, 4).map((staff, i) => (
+ <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+  {staffStatus.length === 0 ? (
+    <p className="text-xs text-gray-400 text-center py-2">No staff scheduled</p>
+  ) : (
+    staffStatus.map((staff, i) => (
         <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center">
@@ -453,7 +453,9 @@ export default function DashboardContent({
             <div>
               <p className="text-sm font-medium text-gray-800">{staff.name}</p>
               <div className="flex items-center gap-2">
-                <p className="text-[10px] text-gray-400">{staff.billsHandled || 0} bills</p>
+             <p className="text-[10px] text-gray-400">
+  {staff.billsHandled || 0} bills • {staff.servicesDone || 0} services
+</p>
                 <span className="text-[10px] text-gray-300">•</span>
                 <p className="text-[10px] font-medium text-green-600">
                   ₹{(staff.revenue || 0).toLocaleString()}
