@@ -174,11 +174,26 @@ export default function BillPrintPage({ params }) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                    <Users size={12} /> Staff
-                  </p>
-                  <p className="text-sm font-medium text-gray-700">{bill.staffName}</p>
-                </div>
+  <p className="text-[10px] text-gray-400 uppercase tracking-wider flex items-center gap-1">
+    <Users size={12} /> Staff
+  </p>
+  <p className="text-sm font-medium text-gray-700">
+    {(() => {
+      const names = [];
+      if (bill.services && bill.services.length > 0) {
+        bill.services.forEach((service) => {
+          (service.staff_names || []).forEach((name) => {
+            if (name && !names.includes(name)) names.push(name);
+          });
+        });
+      }
+      if (names.length === 0 && bill.staffName) {
+        names.push(bill.staffName);
+      }
+      return names.join(", ") || "Staff";
+    })()}
+  </p>
+</div>
               </div>
 
               {/* Services */}
@@ -187,12 +202,20 @@ export default function BillPrintPage({ params }) {
                   <p className="text-[10px] text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-3">
                     <Scissors size={12} /> Services
                   </p>
-                  {bill.services.map((s, i) => (
-                    <div key={i} className="flex justify-between items-center text-sm py-1.5 border-b border-dashed border-gray-100 last:border-0">
-                      <span className="text-gray-700">{s.serviceName}</span>
-                      <span className="font-medium text-gray-800">₹{s.price}</span>
-                    </div>
-                  ))}
+                 {bill.services.map((s, i) => (
+  <div key={i} className="py-1.5 border-b border-dashed border-gray-100 last:border-0">
+    <div className="flex justify-between items-center text-sm">
+      <span className="text-gray-700">{s.serviceName}</span>
+      <span className="font-medium text-gray-800">₹{s.price}</span>
+    </div>
+    {/* ✅ Staff names */}
+    {s.staff_names && s.staff_names.length > 0 && (
+      <div className="text-xs text-gray-500 mt-0.5">
+        👨‍💼 {s.staff_names.join(", ")}
+      </div>
+    )}
+  </div>
+))}
                 </div>
               )}
 
