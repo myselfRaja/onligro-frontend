@@ -1,40 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Crown } from "lucide-react";
+import { Users, Crown, ChevronDown, ChevronRight } from "lucide-react";
 
-export default function StaffPerformance() {
+const fmt = (n) => `₹${(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+
+export default function StaffPerformance({ startDate, endDate }) {
   const [staff, setStaff] = useState([]);
+  const [totals, setTotals] = useState({ actualRevenue: 0, bookings: 0 });
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState({});
 
   useEffect(() => {
-    async function loadStaff() {
+    if (!startDate || !endDate) return;
+
+    async function load() {
+      setLoading(true);
       try {
+        const params = new URLSearchParams({ startDate, endDate });
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/reports/staff-performance`,
-            {
-    credentials: "include",
-  }
+          `${process.env.NEXT_PUBLIC_LOCAL_API_URL}/reports/staff-performance?${params}`,
+          { credentials: "include" }
         );
-        
         const result = await res.json();
         if (result.success) {
-          setStaff(result.data);
+          setStaff(result.data || []);
+          setTotals(result.totals || { actualRevenue: 0, bookings: 0 });
+        } else {
+          setStaff([]);
         }
       } catch (err) {
         console.log(err);
+        setStaff([]);
       } finally {
         setLoading(false);
       }
     }
-    loadStaff();
-  }, []);
+    load();
+  }, [startDate, endDate]);
 
-  const maxRevenue = Math.max(...staff.map(s => s.revenue), 0);
-  const totalRevenue = staff.reduce((sum, s) => sum + s.revenue, 0);
+  const toggle = (key) => setExpanded((p) => ({ ...p, [key]: !p[key] }));
+  const maxRevenue = Math.max(...staff.map((s) => s.actualRevenue || 0), 0);
 
-  const getRankColor = (index) => {
-    switch(index) {
+  const getRankColor = (i) => {
+    switch (i) {
       case 0: return "text-yellow-600 bg-yellow-50";
       case 1: return "text-gray-600 bg-gray-50";
       case 2: return "text-orange-600 bg-orange-50";
@@ -42,99 +51,118 @@ export default function StaffPerformance() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mt-6">
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mt-6">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900">Staff Performance</h2>
+        <p className="text-sm text-gray-500 mt-0.5">
+          Revenue by staff (discount ke baad)
+        </p>
+      </div>
+
+      {loading && (
         <div className="flex items-center justify-center h-48">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  if (staff.length === 0) {
-    return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mt-6">
+      {!loading && staff.length === 0 && (
         <div className="text-center py-12">
           <Users size={48} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-500">No staff performance data available</p>
         </div>
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mt-6">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200 bg-white">
-        <h2 className="text-lg font-semibold text-gray-900">Staff Performance</h2>
-       <p className="text-sm text-gray-500 mt-0.5">
-  Bill revenue by staff
-</p>
-      </div>
+      {!loading && staff.length > 0 && (
+        <>
+          <div className="hidden md:grid grid-cols-12 gap-2 px-5 py-2 bg-gray-50 border-b text-xs font-semibold text-gray-600 uppercase">
+            <div className="col-span-1">#</div>
+            <div className="col-span-4">Staff</div>
+            <div className="col-span-2 text-right">Services</div>
+            <div className="col-span-4 text-right">Revenue</div>
+            <div className="col-span-1"></div>
+          </div>
 
-      {/* Staff List */}
-      <div className="divide-y divide-gray-100">
-        {staff.map((s, index) => {
-          const revenuePercent = totalRevenue > 0 ? (s.revenue / totalRevenue) * 100 : 0;
-          const revenueProgress = maxRevenue > 0 ? (s.revenue / maxRevenue) * 100 : 0;
-          const rankColor = getRankColor(index);
-          
-          return (
-            <div key={index} className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  {/* Rank */}
-                  <div className={`w-8 h-8 rounded ${rankColor} flex items-center justify-center font-bold text-sm`}>
-                    {index + 1}
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-gray-900">{s.name}</h3>
-                      {index === 0 && <Crown size={14} className="text-yellow-500" />}
+          <div className="divide-y divide-gray-100">
+            {staff.map((s, index) => {
+              const key = s.staffId || `unassigned-${index}`;
+              const isOpen = !!expanded[key];
+              const isUnassigned = !s.staffId;
+              const progress = maxRevenue > 0 ? (s.actualRevenue / maxRevenue) * 100 : 0;
+
+              return (
+                <div key={key}>
+                  <div
+                    className={`px-5 py-3 grid grid-cols-12 gap-2 items-center cursor-pointer hover:bg-gray-50 ${isUnassigned ? "bg-yellow-50/30" : ""}`}
+                    onClick={() => toggle(key)}
+                  >
+                    <div className="col-span-1">
+                      <div className={`w-7 h-7 rounded ${getRankColor(index)} flex items-center justify-center font-bold text-xs`}>
+                        {index + 1}
+                      </div>
                     </div>
-                   <div className="flex items-center gap-3 mt-1 text-sm">
-  <span className="text-gray-600">
-    {s.bookings} bills
-  </span>
-
-  <span className="text-gray-300">|</span>
-
-  <span className="text-gray-600">
-    ₹{s.revenue.toLocaleString()}
-  </span>
-</div>
+                    <div className="col-span-4 flex items-center gap-2">
+                      <span className="font-semibold text-gray-900">{s.staffName}</span>
+                      {index === 0 && !isUnassigned && <Crown size={14} className="text-yellow-500" />}
+                      {isUnassigned && (
+                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">no staff</span>
+                      )}
+                    </div>
+                    <div className="col-span-2 text-right text-sm text-gray-600">{s.bookings}</div>
+                    <div className="col-span-4 text-right font-medium text-green-700">{fmt(s.actualRevenue)}</div>
+                    <div className="col-span-1 flex justify-end text-gray-400">
+                      {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    </div>
                   </div>
-                </div>
-                
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-700">
-                    {revenuePercent.toFixed(0)}%
-                  </p>
-                  <p className="text-xs text-gray-400">of total</p>
-                </div>
-              </div>
 
-              {/* Progress Bar */}
-              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                  style={{ width: `${revenueProgress}%` }}
-                />
-              </div>
+                  <div className="px-5 pb-2">
+                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+
+                  {isOpen && (
+                    <div className="px-5 pb-4 bg-gray-50/50">
+                      <div className="mt-2 border border-gray-200 rounded overflow-hidden">
+                        <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-600">
+                          <div className="col-span-7">Service</div>
+                          <div className="col-span-2 text-right">Qty</div>
+                          <div className="col-span-3 text-right">Revenue</div>
+                        </div>
+                        {s.services && s.services.length > 0 ? (
+                          s.services.map((svc, i) => (
+                            <div key={i} className="grid grid-cols-12 gap-2 px-3 py-2 border-t border-gray-100 text-sm">
+                              <div className="col-span-7 text-gray-800">{svc.serviceName}</div>
+                              <div className="col-span-2 text-right text-gray-600">{svc.count}</div>
+                              <div className="col-span-3 text-right text-green-700">{fmt(svc.actualRevenue)}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-gray-500">No service details</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
+            <div className="grid grid-cols-12 gap-2 items-center text-sm">
+              <div className="col-span-5 font-bold text-gray-900">TOTAL</div>
+              <div className="col-span-2 text-right text-gray-700">{totals.bookings}</div>
+              <div className="col-span-4 text-right font-bold text-green-700">{fmt(totals.actualRevenue)}</div>
+              <div className="col-span-1"></div>
             </div>
-          );
-        })}
-      </div>
+          </div>
 
-      {/* Simple Insight */}
-      {staff.length > 0 && (
-        <div className="px-5 py-3 bg-gray-50 border-t border-gray-100">
-          <p className="text-xs text-gray-600">
-          🏆 Highest bill revenue: {staff[0]?.name} • ₹{staff[0]?.revenue.toLocaleString()}
-          </p>
-        </div>
+          <div className="px-5 py-3 bg-green-50 border-t border-green-100">
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Note: Revenue is calculated after applying discounts. Staff performance is based on the actual revenue generated by each staff member during the selected date range.
+            </p>
+          </div>
+        </>
       )}
     </div>
   );

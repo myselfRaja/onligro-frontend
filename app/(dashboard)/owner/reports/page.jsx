@@ -154,6 +154,15 @@ const [summary, setSummary] = useState({
     setShowDatePicker(false);
   };
 
+  const setToday = () => {
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+
+  setStartDate(todayStr);
+  setEndDate(todayStr);
+  setShowDatePicker(false);
+};
+
   const clearDates = () => {
     const today = new Date();
     const thirtyDaysAgo = new Date();
@@ -234,30 +243,20 @@ const [summary, setSummary] = useState({
                 </div>
 
                 {/* Quick Filters */}
-                <div className="grid grid-cols-3 gap-2 mb-4">
-
-                  <button
-                    onClick={setLast7Days}
-                    className="px-2 py-1.5 text-xs bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
-                  >
-                    Last 7 days
-                  </button>
-
-                  <button
-                    onClick={setLast30Days}
-                    className="px-2 py-1.5 text-xs bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
-                  >
-                    Last 30 days
-                  </button>
-
-                  <button
-                    onClick={setThisMonth}
-                    className="px-2 py-1.5 text-xs bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
-                  >
-                    This month
-                  </button>
-
-                </div>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+  <button onClick={setToday} className="px-2 py-1.5 text-xs bg-gray-50 rounded-md hover:bg-gray-100">
+    Today
+  </button>
+  <button onClick={setLast7Days} className="px-2 py-1.5 text-xs bg-gray-50 rounded-md hover:bg-gray-100">
+    Last 7 days
+  </button>
+  <button onClick={setLast30Days} className="px-2 py-1.5 text-xs bg-gray-50 rounded-md hover:bg-gray-100">
+    Last 30 days
+  </button>
+  <button onClick={setThisMonth} className="px-2 py-1.5 text-xs bg-gray-50 rounded-md hover:bg-gray-100">
+    This month
+  </button>
+</div>
 
                 {/* Custom Date Inputs */}
                 <div className="space-y-3">
@@ -327,7 +326,7 @@ const [summary, setSummary] = useState({
 
         {/* OTHER */}
         <TopServices />
-        <StaffPerformance />
+    <StaffPerformance startDate={startDate} endDate={endDate} />
         <PeakHours />
 
       </div>

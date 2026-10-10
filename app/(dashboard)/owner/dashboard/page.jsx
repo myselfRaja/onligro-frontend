@@ -258,64 +258,73 @@ setCustomerInsights({
 
         setRecentBills(recentBillsList);
         // 8. ✅ Staff Performance (from bills) — PER-SERVICE SPLIT
-             const staffMap = {};
+          // 8. ✅ Staff Performance (from bills) — PER-SERVICE SPLIT
+const staffMap = {};
 
-        staffList.forEach((staff) => {
-          staffMap[staff._id.toString()] = {
-            name: staff.name,
-            billsHandled: 0,
-            servicesDone: 0,   // ✅ Naya field
-            revenue: 0,
-          };
-        });
+staffList.forEach((staff) => {
+  staffMap[staff._id.toString()] = {
+    name: staff.name,
+    billsHandled: 0,
+    servicesDone: 0,
+    revenue: 0,
+  };
+});
 
-              todayBillsList.forEach((bill) => {
-          // ✅ Naya format: har service ka apna staff_ids
-          if (bill.services && bill.services.length > 0) {
-            // ✅ Bill-level staff tracker (unique per bill)
-            const billStaffTracker = new Set();
+todayBillsList.forEach((bill) => {
+  // ✅ Discount ratio nikalo (bill-level)
+  const totalAmount = bill.totalAmount || 0;
+  const finalAmount = bill.finalAmount || 0;
+  const discountRatio = totalAmount > 0 ? finalAmount / totalAmount : 1;
 
-            bill.services.forEach((service) => {
-              const staffIds = service.staff_ids || [];
-              const staffCount = staffIds.length;
-              
-              if (staffCount === 0) return;
+  // ✅ Naya format: har service ka apna staff_ids
+  if (bill.services && bill.services.length > 0) {
+    const billStaffTracker = new Set();
 
-              const lineTotal = service.line_total || (service.price * (service.quantity || 1));
-              const share = lineTotal / staffCount;
-              const serviceCount = service.quantity || 1;
+    bill.services.forEach((service) => {
+      const staffIds = service.staff_ids || [];
+      const staffCount = staffIds.length;
 
-              staffIds.forEach((staffId) => {
-                const id = staffId.toString();
-                if (staffMap[id]) {
-                  // ✅ Har bill me sirf 1 baar count karo
-                  const billKey = `${bill._id}-${id}`;
-                  if (!billStaffTracker.has(billKey)) {
-                    staffMap[id].billsHandled += 1;
-                    billStaffTracker.add(billKey);
-                  }
-                  
-                  // ✅ Services count alag
-                  staffMap[id].servicesDone += serviceCount;
-                  
-                  // ✅ Revenue
-                  staffMap[id].revenue += share;
-                }
-              });
-            });
-          } else {
-            // Purana format (backward compatibility)
-            const id = bill.staffId?.toString();
-            if (id && staffMap[id]) {
-              staffMap[id].billsHandled += 1;
-              staffMap[id].servicesDone += 1;   // ✅ Purane me 1 service
-              staffMap[id].revenue += bill.finalAmount || 0;
-            }
+      if (staffCount === 0) return;
+
+      const lineTotal = service.line_total || (service.price * (service.quantity || 1));
+
+      // ✅ Pehle discount lagao
+      const actualTotal = lineTotal * discountRatio;
+      // ✅ Phir split karo
+      const share = actualTotal / staffCount;
+
+      const serviceCount = service.quantity || 1;
+
+      staffIds.forEach((staffId) => {
+        const id = staffId.toString();
+        if (staffMap[id]) {
+          const billKey = `${bill._id}-${id}`;
+          if (!billStaffTracker.has(billKey)) {
+            staffMap[id].billsHandled += 1;
+            billStaffTracker.add(billKey);
           }
-        });
 
-        const staffArray = Object.values(staffMap);
-        setStaffStatus(staffArray);
+          staffMap[id].servicesDone += serviceCount;
+          staffMap[id].revenue += share;
+        }
+      });
+    });
+  } else {
+    // Purana format — poora finalAmount
+    const id = bill.staffId?.toString();
+    if (id && staffMap[id]) {
+      staffMap[id].billsHandled += 1;
+      staffMap[id].servicesDone += 1;
+      staffMap[id].revenue += bill.finalAmount || 0;
+    }
+  }
+});
+
+const staffArray = Object.values(staffMap).map((s) => ({
+  ...s,
+  revenue: Math.round(s.revenue),
+}));
+setStaffStatus(staffArray);
 
         // 9. ✅ Generate Insight Message (Billing-based)
         let smartMessage = "";
