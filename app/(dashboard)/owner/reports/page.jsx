@@ -7,6 +7,7 @@ import ReportsSummaryCards from "./components/ReportsSummaryCards";
 import RevenueOverview from "./components/RevenueOverview";
 import StaffPerformance from "./components/StaffPerfomance";
 import TopServices from "./components/TopServices";
+import ProductPerformance from "./components/ProductPerfomance";
 import PeakHours from "./components/PeakHours";
 
 export default function ReportsPage() {
@@ -326,6 +327,7 @@ const [summary, setSummary] = useState({
 
         {/* OTHER */}
         <TopServices />
+        <ProductPerformance startDate={startDate} endDate={endDate} />
     <StaffPerformance startDate={startDate} endDate={endDate} />
         <PeakHours />
 

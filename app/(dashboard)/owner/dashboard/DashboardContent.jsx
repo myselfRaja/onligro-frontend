@@ -32,6 +32,7 @@ import {
   UserPlus as UserPlusIcon,
   Repeat,
   Receipt,
+  Package, 
 } from "lucide-react";
 
 export default function DashboardContent({
@@ -202,9 +203,9 @@ export default function DashboardContent({
               <p className="text-xs text-green-700/70 font-medium">Total Revenue</p>
               <p className="text-2xl font-bold text-green-700 mt-0.5">₹{stats.todayRevenue || 0}</p>
               <p className="text-[10px] text-green-600/60 mt-1 flex items-center gap-1">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                Live earnings
-              </p>
+  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+  Avg ₹{stats.avgBillValue || 0} per bill
+</p>
             </div>
           </motion.div>
 
@@ -250,26 +251,26 @@ export default function DashboardContent({
             </div>
           </motion.div>
 
-          {/* Average Bill Card */}
-          <motion.div 
-            variants={itemVariants} 
-            className="group relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 border border-blue-100"
-          >
-            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-200/30 to-transparent rounded-full -mr-10 -mt-10"></div>
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-                  <DollarSign size={16} className="text-white" />
-                </div>
-                <span className="text-[10px] font-medium text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full">Today</span>
-              </div>
-              <p className="text-xs text-blue-700/70 font-medium">Average Bill</p>
-              <p className="text-2xl font-bold text-blue-700 mt-0.5">₹{stats.avgBillValue || 0}</p>
-              <p className="text-[10px] text-blue-600/60 mt-1">
-                Per customer
-              </p>
-            </div>
-          </motion.div>
+        {/* Product Sales Card */}
+<motion.div 
+  variants={itemVariants} 
+  className="group relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 border border-blue-100"
+>
+  <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-200/30 to-transparent rounded-full -mr-10 -mt-10"></div>
+  <div className="relative z-10">
+    <div className="flex items-center justify-between mb-2">
+      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+        <Package size={16} className="text-white" />
+      </div>
+      <span className="text-[10px] font-medium text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full">Today</span>
+    </div>
+    <p className="text-xs text-blue-700/70 font-medium">Product Sales</p>
+    <p className="text-2xl font-bold text-blue-700 mt-0.5">₹{stats.todayProductRevenue || 0}</p>
+    <p className="text-[10px] text-blue-600/60 mt-1">
+      {stats.todayProductItems || 0} items sold
+    </p>
+  </div>
+</motion.div>
         </motion.div>
 
 

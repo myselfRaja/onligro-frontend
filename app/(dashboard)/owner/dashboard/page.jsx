@@ -12,6 +12,8 @@ export default function DashboardPage() {
     todayBills: 0,
     customersServed: 0,
     avgBillValue: 0,
+      todayProductRevenue: 0,   // ✅ naya
+  todayProductItems: 0,     // ✅ naya
   });
 
   const [recentBills, setRecentBills] = useState([]);
@@ -150,7 +152,27 @@ export default function DashboardPage() {
         
         // Average bill value
         const avgBillValue = todayBills > 0 ? Math.round(todayRevenue / todayBills) : 0;
+// ✅ Product Revenue calculate karo
+let todayProductRevenue = 0;
+let todayProductItems = 0;
 
+todayBillsList.forEach((bill) => {
+  // Discount ratio (agar products pe discount lagna hai)
+  const totalAmount = bill.totalAmount || 0;
+  const finalAmount = bill.finalAmount || 0;
+  const discountRatio = totalAmount > 0 ? finalAmount / totalAmount : 1;
+
+  if (bill.products && bill.products.length > 0) {
+    bill.products.forEach((p) => {
+      // Discount ke baad product revenue
+      todayProductRevenue += (p.total || 0) * discountRatio;
+      todayProductItems += p.quantity || 0;
+    });
+  }
+});
+
+// Round karo
+todayProductRevenue = Math.round(todayProductRevenue);
         // 5. ✅ Payment Split
         let cashTotal = 0, upiTotal = 0, cardTotal = 0;
         let cashCount = 0, upiCount = 0, cardCount = 0;
@@ -367,13 +389,15 @@ setStaffStatus(staffArray);
         // }
 
         // 10. ✅ Set all states
-        setStats({
-          salonId,
-          todayRevenue,
-          todayBills,
-          customersServed,
-          avgBillValue,
-        });
+       setStats({
+  salonId,
+  todayRevenue,
+  todayBills,
+  customersServed,
+  avgBillValue,
+  todayProductRevenue,   // ✅ naya
+  todayProductItems,     // ✅ naya
+});
 
         setInsight(smartMessage);
 
