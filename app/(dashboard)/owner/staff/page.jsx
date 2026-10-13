@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Edit2, Trash2, Search, Users, Loader, UserPlus, Key, Mail, Lock, CheckCircle, XCircle } from "lucide-react";
 
 export default function StaffPage() {
+  const router = useRouter();
   const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
@@ -16,12 +18,15 @@ export default function StaffPage() {
   const [deleteModal, setDeleteModal] = useState(false);
   const [accessModal, setAccessModal] = useState(false); // ✅ NEW
   
-  const [form, setForm] = useState({
-    name: "",
-    role: "",
-    email: "",
-    password: "",
-  });
+ const [form, setForm] = useState({
+  name: "",
+  role: "",
+  phone: "",
+  address: "",
+  gender: "male",
+  email: "",
+  password: "",
+});
   
   // ✅ NEW: Access form state
   const [accessForm, setAccessForm] = useState({
@@ -34,6 +39,7 @@ export default function StaffPage() {
   const roleOptions = [
     "Hair Stylist",
     "Senior Hair Stylist",
+    "Hair & Beauty Specialist",
     "Beautician",
     "Senior Beautician", 
     "Makeup Artist",
@@ -82,17 +88,20 @@ export default function StaffPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          name: form.name,
-          role: form.role,
-          email: form.email,
-          password: form.password,
-        }),
+       body: JSON.stringify({
+  name: form.name,
+  role: form.role,
+  phone: form.phone,
+  address: form.address,
+  gender: form.gender,
+  email: form.email,
+  password: form.password,
+}),
       });
 
       if (res.ok) {
         setAddModal(false);
-        setForm({ name: "", role: "", email: "", password: "" });
+       setForm({ name: "", role: "", phone: "", address: "", gender: "male", email: "", password: "" });
         await fetchStaff();
       }
     } catch (error) {
@@ -111,10 +120,13 @@ export default function StaffPage() {
     
     try {
       const updateData = {
-        name: form.name,
-        role: form.role,
-        email: form.email,
-      };
+  name: form.name,
+  role: form.role,
+  phone: form.phone,
+  address: form.address,
+  gender: form.gender,
+  email: form.email,
+};
       
       if (form.password && form.password.trim() !== "") {
         updateData.password = form.password;
@@ -129,7 +141,7 @@ export default function StaffPage() {
 
       if (res.ok) {
         setEditModal(false);
-        setForm({ name: "", role: "", email: "", password: "" });
+        setForm({ name: "", role: "", phone: "", address: "", gender: "male", email: "", password: "" });
         setSelectedStaff(null);
         await fetchStaff();
       }
@@ -229,12 +241,15 @@ export default function StaffPage() {
   function openEditModal(staff) {
   setSelectedStaff(staff);
   setForm({
-    name: staff.name,
-    role: staff.role,
-    email: staff.email || "",
-    password: "",
-    _id: staff._id,  // ✅ ADD THIS
-  });
+  name: staff.name,
+  role: staff.role,
+  phone: staff.phone || "",
+  address: staff.address || "",
+  gender: staff.gender || "male",
+  email: staff.email || "",
+  password: "",
+  _id: staff._id,
+});
   setEditModal(true);
 }
 
@@ -288,7 +303,7 @@ export default function StaffPage() {
 
         <button
           onClick={() => {
-            setForm({ name: "", role: "", email: "", password: "" });
+           setForm({ name: "", role: "", phone: "", address: "", gender: "male", email: "", password: "" });
             setAddModal(true);
           }}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
@@ -377,7 +392,7 @@ export default function StaffPage() {
             {!searchTerm && (
               <button
                 onClick={() => {
-                  setForm({ name: "", role: "", email: "", password: "" });
+                 setForm({ name: "", role: "", phone: "", address: "", gender: "male", email: "", password: "" });
                   setAddModal(true);
                 }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium"
@@ -399,30 +414,37 @@ export default function StaffPage() {
               <div className="p-6">
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {staffMembers.map((staff, index) => (
-                    <motion.div
-                      key={staff._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 group"
-                    >
+                   <motion.div
+  key={staff._id}
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: index * 0.1 }}
+  onClick={() => router.push(`/owner/staff/${staff._id}`)}
+  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 group cursor-pointer"
+>
                       <div className="flex items-start justify-between mb-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                          {staff.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                        </div>
+    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+  {staff.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+</div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => openEditModal(staff)}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => openDeleteModal(staff)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+  onClick={(e) => {
+    e.stopPropagation();
+    openEditModal(staff);
+  }}
+  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+>
+  <Edit2 size={16} />
+</button>
+                         <button
+  onClick={(e) => {
+    e.stopPropagation();
+    openDeleteModal(staff);
+  }}
+  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+>
+  <Trash2 size={16} />
+</button>
                         </div>
                       </div>
 
@@ -445,13 +467,16 @@ export default function StaffPage() {
                           </span>
                         )}
 
-                        <button
-                          onClick={() => openAccessModal(staff)}
-                          className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all"
-                        >
-                          <Key size={12} className="inline mr-1" />
-                          {staff.loginEnabled ? "Change Access" : "Set Login"}
-                        </button>
+                       <button
+  onClick={(e) => {
+    e.stopPropagation();
+    openAccessModal(staff);
+  }}
+  className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all"
+>
+  <Key size={12} className="inline mr-1" />
+  {staff.loginEnabled ? "Change Access" : "Set Login"}
+</button>
 
                         {staff.isActive !== false ? (
                           <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full">
@@ -464,13 +489,16 @@ export default function StaffPage() {
                         )}
 
                         <button
-                          onClick={() => toggleStaffStatus(staff._id)}
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            staff.isActive !== false
-                              ? "bg-red-100 text-red-700"
-                              : "bg-green-100 text-green-700"
-                          }`}
-                        >
+  onClick={(e) => {
+    e.stopPropagation();
+    toggleStaffStatus(staff._id);
+  }}
+  className={`px-2 py-1 rounded-full text-xs font-medium ${
+    staff.isActive !== false
+      ? "bg-red-100 text-red-700"
+      : "bg-green-100 text-green-700"
+  }`}
+>
                           {staff.isActive !== false ? "Mark Inactive" : "Mark Active"}
                         </button>
                       </div>
@@ -490,7 +518,7 @@ export default function StaffPage() {
             title="Add Staff Member"
             onClose={() => {
               setAddModal(false);
-              setForm({ name: "", role: "", email: "", password: "" });
+           setForm({ name: "", role: "", phone: "", address: "", gender: "male", email: "", password: "" });
             }}
             onSubmit={addStaff}
             loading={actionLoading === "adding"}
@@ -511,7 +539,7 @@ export default function StaffPage() {
             onClose={() => {
               setEditModal(false);
               setSelectedStaff(null);
-              setForm({ name: "", role: "", email: "", password: "" });
+            setForm({ name: "", role: "", phone: "", address: "", gender: "male", email: "", password: "" });
             }}
             onSubmit={updateStaff}
             loading={actionLoading === "updating"}
@@ -576,18 +604,18 @@ function StaffModal({ title, onClose, onSubmit, loading, submitText, form, setFo
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white rounded-2xl w-full max-w-md shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-        </div>
+  initial={{ scale: 0.9, opacity: 0 }}
+  animate={{ scale: 1, opacity: 1 }}
+  exit={{ scale: 0.9, opacity: 0 }}
+  className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col"
+  onClick={(e) => e.stopPropagation()}
+>
+       <div className="p-6 border-b border-gray-200 flex-shrink-0">
+  <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+</div>
 
-        <form onSubmit={onSubmit}>
-          <div className="p-6 space-y-4">
+        <form onSubmit={onSubmit} className="flex flex-col min-h-0">
+  <div className="p-6 space-y-4 overflow-y-auto flex-1">
             {/* Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -622,7 +650,49 @@ function StaffModal({ title, onClose, onSubmit, loading, submitText, form, setFo
                 ))}
               </select>
             </div>
+{/* Phone */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Phone Number
+  </label>
+  <input
+    type="tel"
+    placeholder="Enter phone number"
+    value={form.phone || ""}
+    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  />
+</div>
 
+{/* Address */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Address
+  </label>
+  <textarea
+    placeholder="Enter address"
+    value={form.address || ""}
+    onChange={(e) => setForm({ ...form, address: e.target.value })}
+    rows={2}
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+  />
+</div>
+
+{/* Gender */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Gender
+  </label>
+  <select
+    value={form.gender || "male"}
+    onChange={(e) => setForm({ ...form, gender: e.target.value })}
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  >
+    <option value="male">Male</option>
+    <option value="female">Female</option>
+    <option value="other">Other</option>
+  </select>
+</div>
             {/* ✅ Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -666,7 +736,7 @@ function StaffModal({ title, onClose, onSubmit, loading, submitText, form, setFo
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
+      <div className="flex justify-end gap-3 p-6 border-t border-gray-200 flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -703,24 +773,24 @@ function SetAccessModal({ staff, onClose, onSubmit, loading, form, setForm }) {
       className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white rounded-2xl w-full max-w-md shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {staff?.loginEnabled ? "Change Login Access" : "Set Login Access"}
-          </h2>
+     <motion.div
+  initial={{ scale: 0.9, opacity: 0 }}
+  animate={{ scale: 1, opacity: 1 }}
+  exit={{ scale: 0.9, opacity: 0 }}
+  className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col"
+  onClick={(e) => e.stopPropagation()}
+>
+        <div className="p-6 border-b border-gray-200 flex-shrink-0">
+  <h2 className="text-xl font-semibold text-gray-900">
+    {staff?.loginEnabled ? "Change Login Access" : "Set Login Access"}
+  </h2>
           <p className="text-sm text-gray-600 mt-1">
             For: <strong>{staff?.name}</strong> ({staff?.role})
           </p>
         </div>
 
-        <form onSubmit={onSubmit}>
-          <div className="p-6 space-y-4">
+      <form onSubmit={onSubmit} className="flex flex-col min-h-0">
+  <div className="p-6 space-y-4 overflow-y-auto flex-1">
             {/* ✅ Email Field - DIRECT EMPTY */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -728,17 +798,20 @@ function SetAccessModal({ staff, onClose, onSubmit, loading, form, setForm }) {
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="email"
-                  placeholder="Enter staff email"
-                  value={form.email || ""}
-                  onChange={(e) => {
-                    setForm({ ...form, email: e.target.value });
-                  }}
-                    autoComplete="off"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
+            <input
+  type="text"
+  inputMode="email"
+  placeholder="Enter staff email"
+  value={form.email || ""}
+  onChange={(e) => setForm({ ...form, email: e.target.value })}
+  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  required={!form._id}
+  autoComplete="off"
+  name="staff_email_no_autofill"
+  autoCorrect="off"
+  autoCapitalize="off"
+  spellCheck="false"
+/>
               </div>
               {staff?.email && (
                 <p className="text-xs text-gray-500 mt-1">
@@ -754,17 +827,20 @@ function SetAccessModal({ staff, onClose, onSubmit, loading, form, setForm }) {
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <input
-                  type="password"
-                  placeholder="Enter new password"
-                  value={form.password || ""}
-                  onChange={(e) => {
-                    setForm({ ...form, password: e.target.value });
-                  }}
-                    autoComplete="off"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
+             <input
+  type="text"
+  placeholder={form._id ? "New password (optional)" : "Enter password"}
+  value={form.password || ""}
+  onChange={(e) => setForm({ ...form, password: e.target.value })}
+  onFocus={(e) => (e.target.type = "password")}
+  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  required={!form._id}
+  autoComplete="off"
+  name="staff_password_no_autofill"
+  autoCorrect="off"
+  autoCapitalize="off"
+  spellCheck="false"
+/>
               </div>
               {staff?.loginEnabled && (
                 <p className="text-xs text-gray-500 mt-1">
@@ -774,7 +850,7 @@ function SetAccessModal({ staff, onClose, onSubmit, loading, form, setForm }) {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
+      <div className="flex justify-end gap-3 p-6 border-t border-gray-200 flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
