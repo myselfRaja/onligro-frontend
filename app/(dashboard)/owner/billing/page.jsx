@@ -1,21 +1,29 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
-import { useSearchParams } from "next/navigation"; // ← ADD THIS
+import { useSearchParams } from "next/navigation";
 import { Loader } from "lucide-react";
 
 export default function BillingPage() {
-    const searchParams = useSearchParams(); 
-  // ===== EXISTING STATES (SAME) =====
+  const searchParams = useSearchParams();
+
+  // ===== EXISTING STATES =====
   const [services, setServices] = useState([]);
-  // ===== SERVICE PRICE EDITING =====
-const [servicePrices, setServicePrices] = useState({});
-const [serviceNames, setServiceNames] = useState({});
-const [selectedServices, setSelectedServices] = useState([]);
-const [openStaffDropdown, setOpenStaffDropdown] = useState(null);
-const [customerSuggestions, setCustomerSuggestions] = useState([]);
-const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+  const [servicePrices, setServicePrices] = useState({});
+  const [serviceNames, setServiceNames] = useState({});
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [openStaffDropdown, setOpenStaffDropdown] = useState(null);
+  const [customerSuggestions, setCustomerSuggestions] = useState([]);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
+
+  // ✅ Wallet states
+  const [wallet, setWallet] = useState(null);
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [usePoints, setUsePoints] = useState(false);
+  const [useBalance, setUseBalance] = useState(false);
+  const [useDue, setUseDue] = useState(false);
+
   const [staff, setStaff] = useState([]);
   const [bills, setBills] = useState([]);
   const [visibleCount, setVisibleCount] = useState(10);
@@ -26,133 +34,144 @@ const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [currentBill, setCurrentBill] = useState(null);
   const receiptRef = useRef(null);
- const [form, setForm] = useState({
+
+  const [form, setForm] = useState({
     customerName: searchParams.get("customerName") || "",
     customerPhone: searchParams.get("customerPhone") || "",
     services: searchParams.get("services") ? searchParams.get("services").split(",") : [],
     staffId: searchParams.get("staffId") || "",
     paymentMode: "Cash",
   });
+
   const [showStaffDropdown, setShowStaffDropdown] = useState(false);
   const [totalAmount, setTotalAmount] = useState(0);
   const [serviceTotal, setServiceTotal] = useState(0);
-  // ===== DISCOUNT STATES =====
-const [discountAmount, setDiscountAmount] = useState(0);
-const [discountType, setDiscountType] = useState('flat'); // 'flat' or 'percent'
-  const isMobile = typeof navigator !== 'undefined' && 
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [discountType, setDiscountType] = useState('flat');
+
+  const isMobile = typeof navigator !== 'undefined' &&
     /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-  // ===== 🔥 NEW: PRODUCT STATES =====
   const [products, setProducts] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [searchProduct, setSearchProduct] = useState("");
   const [productTotal, setProductTotal] = useState(0);
 
-  // ===== LOAD DATA (UPDATED) =====
-async function loadData() {
-  setLoading(true);
-  try {
-    // ✅ Get salonId from user (localStorage)
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const salonId = user?.salonId || '';
+  // ===== LOAD DATA =====
+  async function loadData() {
+    setLoading(true);
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const salonId = user?.salonId || '';
 
-    // ✅ Add salonId to all API calls
-    const [serviceRes, staffRes, billsRes, productRes] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/service/all?salonId=${salonId}`, { credentials: "include" }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/all?salonId=${salonId}`, { credentials: "include" }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/all?salonId=${salonId}`, { credentials: "include" }),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/all?salonId=${salonId}`, { credentials: "include" }),
-    ]);
+      const [serviceRes, staffRes, billsRes, productRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/service/all?salonId=${salonId}`, { credentials: "include" }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/all?salonId=${salonId}`, { credentials: "include" }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/all?salonId=${salonId}`, { credentials: "include" }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/all?salonId=${salonId}`, { credentials: "include" }),
+      ]);
 
-    const serviceData = await serviceRes.json();
-    const staffData = await staffRes.json();
-    const billsData = await billsRes.json();
-    const productData = await productRes.json();
+      const serviceData = await serviceRes.json();
+      const staffData = await staffRes.json();
+      const billsData = await billsRes.json();
+      const productData = await productRes.json();
 
-    setServices(serviceData.services || []);
-    
-    // 🔥 APPOINTMENT AUTO-FILL: Services set karo par prices empty rakho
-    const appointmentServices = searchParams.get("services");
-    if (appointmentServices && serviceData.services) {
-      const serviceIds = appointmentServices.split(",");
-      const prices = {};
-      serviceIds.forEach(id => {
-        prices[id] = ""; // Empty price - owner bharega
-      });
-      setServicePrices(prices);
+      setServices(serviceData.services || []);
+
+      const appointmentServices = searchParams.get("services");
+      if (appointmentServices && serviceData.services) {
+        const serviceIds = appointmentServices.split(",");
+        const prices = {};
+        serviceIds.forEach(id => { prices[id] = ""; });
+        setServicePrices(prices);
+      }
+
+      setStaff(staffData.staff || []);
+      setBills(billsData.bills || []);
+      setProducts(productData.products || []);
+
+      const appointmentStaffId = searchParams.get("staffId");
+      if (appointmentStaffId && staffData.staff) {
+        const staffExists = staffData.staff.find(s => s._id === appointmentStaffId);
+        if (staffExists) {
+          setForm(prev => ({ ...prev, staffId: appointmentStaffId }));
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    
-    setStaff(staffData.staff || []);
-    setBills(billsData.bills || []);
-    setProducts(productData.products || []);
-    
-    // 🔥 APPOINTMENT AUTO-FILL: Staff set karo agar URL se aaya hai
-    const appointmentStaffId = searchParams.get("staffId");
-    if (appointmentStaffId && staffData.staff) {
-      const staffExists = staffData.staff.find(s => s._id === appointmentStaffId);
-      if (staffExists) {
-        setForm(prev => ({ ...prev, staffId: appointmentStaffId }));
+  }
+
+  // ✅ Customer search
+  useEffect(() => {
+    if (!form.customerName || form.customerName.length < 2) {
+      setCustomerSuggestions([]);
+      setShowCustomerDropdown(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setCustomerSearchLoading(true);
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/customers/search?query=${form.customerName}`,
+          { credentials: "include" }
+        );
+        const data = await res.json();
+        setCustomerSuggestions(data.customers || []);
+        setShowCustomerDropdown(true);
+      } catch (err) {
+        console.error("Customer search failed:", err);
+      } finally {
+        setCustomerSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [form.customerName]);
+
+  // ✅ Wallet fetch
+  useEffect(() => {
+    if (!form.customerPhone || form.customerPhone.length !== 10) {
+      setWallet(null);
+      return;
+    }
+
+    async function loadWallet() {
+      setWalletLoading(true);
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/wallet/${form.customerPhone}`,
+          { credentials: "include" }
+        );
+        const data = await res.json();
+        if (data.success) {
+          setWallet(data.wallet);
+        }
+      } catch (err) {
+        console.log(err);
+      } finally {
+        setWalletLoading(false);
       }
     }
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-}
-
-// ✅ Customer search (debounced)
-useEffect(() => {
-  if (!form.customerName || form.customerName.length < 2) {
-    setCustomerSuggestions([]);
-    setShowCustomerDropdown(false);
-    return;
-  }
-
-  const timer = setTimeout(async () => {
-    setCustomerSearchLoading(true);
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/customers/search?query=${form.customerName}`,
-        { credentials: "include" }
-      );
-      const data = await res.json();
-      setCustomerSuggestions(data.customers || []);
-      setShowCustomerDropdown(true);
-    } catch (err) {
-      console.error("Customer search failed:", err);
-    } finally {
-      setCustomerSearchLoading(false);
-    }
-  }, 300);
-
-  return () => clearTimeout(timer);
-}, [form.customerName]);
+    loadWallet();
+  }, [form.customerPhone]);
 
   // ===== SERVICE TOTAL =====
-// ===== SERVICE TOTAL =====
-// useEffect(() => {
-//   const selected = services.filter((service) => form.services.includes(service._id));
-//   const total = selected.reduce((sum, service) => {
-//     const price = servicePrices[service._id] !== undefined ? servicePrices[service._id] : service.price;
-//     return sum + price;
-//   }, 0);
-//   setServiceTotal(total);
-// }, [form.services, services, servicePrices]); // ← servicePrices ADD KARO
+  useEffect(() => {
+    const total = selectedServices.reduce((sum, s) => sum + s.line_total, 0);
+    setServiceTotal(total);
+  }, [selectedServices]);
 
-// ✅ Naya: selectedServices se total
-useEffect(() => {
-  const total = selectedServices.reduce((sum, s) => sum + s.line_total, 0);
-  setServiceTotal(total);
-}, [selectedServices]);
-
-  // ===== 🔥 NEW: PRODUCT TOTAL =====
+  // ===== PRODUCT TOTAL =====
   useEffect(() => {
     const total = selectedProducts.reduce((sum, p) => sum + (p.price * p.quantity), 0);
     setProductTotal(total);
   }, [selectedProducts]);
 
-  // ===== GRAND TOTAL =====
+  // ===== TOTAL AMOUNT =====
   useEffect(() => {
     setTotalAmount(serviceTotal + productTotal);
   }, [serviceTotal, productTotal]);
@@ -166,124 +185,175 @@ useEffect(() => {
     }, 500);
   };
 
-  // ===== 🔥 NEW: CREATE BILL (UPDATED) =====
- async function createBill(e) {
-  e.preventDefault();
-  if (creatingBill) return;
+  // ===== CREATE BILL =====
+  async function createBill(e) {
+    e.preventDefault();
+    if (creatingBill) return;
 
-  // ✅ Customer validation
-  if (!form.customerName || form.customerName.trim() === '') {
-    alert("👤 Please enter customer name");
-    return;
-  }
-  if (!/^\d{10}$/.test(form.customerPhone)) {
-    alert("📞 Enter valid 10 digit phone number");
-    return;
-  }
-
-  // ✅ Service/Product validation
-  if (selectedServices.length === 0 && selectedProducts.length === 0) {
-    alert("💇 Please select at least one service or product");
-    return;
-  }
-
-  // ✅ Har service me kam se kam 1 staff hona chahiye
-  for (const service of selectedServices) {
-    if (!service.staff_ids || service.staff_ids.length === 0) {
-      alert(`👨‍💼 Please assign staff for "${service.serviceName}"`);
+    if (!form.customerName || form.customerName.trim() === '') {
+      alert("👤 Please enter customer name");
       return;
     }
-  }
-
-  setCreatingBill(true);
-
-  const billData = {
-    customerName: form.customerName,
-    customerPhone: form.customerPhone,
-    services: selectedServices.map(s => ({
-      serviceId: s.serviceId,
-      serviceName: s.serviceName,
-      unit_price: s.unit_price,
-      quantity: s.quantity,
-      line_total: s.line_total,
-      staff_ids: s.staff_ids,
-      staff_names: s.staff_names,
-    })),
-    finalAmount: Number(grandTotal),
-    paymentMode: form.paymentMode,
-    products: selectedProducts.map(p => ({
-      productId: p.productId,
-      productName: p.name,
-      quantity: p.quantity,
-      price: p.price
-    })),
-    discount: discountAmount,
-    discountType: discountType,
-    appointmentId: searchParams.get("appointmentId") || null,
-  };
-
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/add`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(billData),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      setCurrentBill(data.bill);
-      setShowReceiptModal(true);
-
-      // ✅ Reset form
-      setForm({
-        customerName: "",
-        customerPhone: "",
-        services: [],
-        staffId: "",
-        paymentMode: "Cash",
-      });
-      setSelectedServices([]);
-      setSelectedProducts([]);
-      setSearchService("");
-      setDiscountAmount(0);
-      setDiscountType("percent");
-      setServicePrices({});
-      setServiceNames({});
-      setOpenStaffDropdown(null);
-      loadData();
-
-    } else {
-      alert(data.message || "Failed to create bill");
+    if (!/^\d{10}$/.test(form.customerPhone)) {
+      alert("📞 Enter valid 10 digit phone number");
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    alert("Something went wrong");
-  } finally {
-    setCreatingBill(false);
-  }
-}
-// ===== GRAND TOTAL =====
-useEffect(() => {
-  setTotalAmount(serviceTotal + productTotal);
-}, [serviceTotal, productTotal]);
+   if (selectedServices.length === 0 && selectedProducts.length === 0) {
+      alert("💇 Please select at least one service or product");
+      return;
+    }
 
-// ===== 🔥 GRAND TOTAL WITH DISCOUNT =====
-const grandTotal = useMemo(() => {
-  const subtotal = totalAmount;
-  let discount = discountAmount;
-  
-  if (discountType === 'percent') {
-    discount = (subtotal * discountAmount) / 100;
+    // ✅ FIX: Staff validation ab sirf services par chalega, products par nahi
+    if (selectedServices.length > 0) {
+      for (const service of selectedServices) {
+        if (!service.staff_ids || service.staff_ids.length === 0) {
+          alert(`👨‍💼 Please assign staff for "${service.serviceName}"`);
+          return;
+        }
+      }
+    }
+
+    setCreatingBill(true);
+
+    // ✅ Payable amount nikaalo
+    let discountVal = discountAmount;
+    if (discountType === 'percent') {
+      discountVal = (totalAmount * discountAmount) / 100;
+    }
+    const payableAmount = Math.max(0, Math.round(totalAmount - discountVal));
+
+    // ✅ Priority: Advance → Points → Due/Cash
+    let remaining = payableAmount;
+    let balanceUsed = 0;
+    let pointsUsed = 0;
+    let dueAdded = 0;
+    let finalAmount = 0;
+
+    // 1. Advance
+    if (useBalance && wallet?.balance > 0) {
+      balanceUsed = Math.min(wallet.balance, remaining);
+      remaining -= balanceUsed;
+    }
+
+    // 2. Points
+    if (usePoints && wallet?.points > 0) {
+      pointsUsed = Math.min(wallet.points, remaining);
+      remaining -= pointsUsed;
+    }
+
+    // 3. Due ya Cash
+    if (useDue) {
+      dueAdded = remaining;
+      finalAmount = 0;
+    } else {
+      dueAdded = 0;
+      finalAmount = remaining;
+    }
+
+    const billData = {
+      customerName: form.customerName,
+      customerPhone: form.customerPhone,
+      services: selectedServices.map(s => ({
+        serviceId: s.serviceId,
+        serviceName: s.serviceName,
+        unit_price: s.unit_price,
+        quantity: s.quantity,
+        line_total: s.line_total,
+        staff_ids: s.staff_ids,
+        staff_names: s.staff_names,
+      })),
+      finalAmount: Number(finalAmount),
+      paymentMode: form.paymentMode,
+      products: selectedProducts.map(p => ({
+        productId: p.productId,
+        productName: p.name,
+        quantity: p.quantity,
+        price: p.price
+      })),
+      discount: discountAmount,
+      discountType: discountType,
+      appointmentId: searchParams.get("appointmentId") || null,
+      pointsUsed: pointsUsed,
+      balanceUsed: balanceUsed,
+      dueAdded: dueAdded,
+    };
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/add`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(billData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setCurrentBill(data.bill);
+        setShowReceiptModal(true);
+
+        // ✅ Reset form
+        setForm({
+          customerName: "",
+          customerPhone: "",
+          services: [],
+          staffId: "",
+          paymentMode: "Cash",
+        });
+        setSelectedServices([]);
+        setSelectedProducts([]);
+        setSearchService("");
+        setDiscountAmount(0);
+        setDiscountType("flat");
+        setServicePrices({});
+        setServiceNames({});
+        setOpenStaffDropdown(null);
+        setUsePoints(false);
+        setUseBalance(false);
+        setUseDue(false);
+        setWallet(null);
+        loadData();
+      } else {
+        alert(data.message || "Failed to create bill");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    } finally {
+      setCreatingBill(false);
+    }
   }
-  
-  const total = Math.max(0, subtotal - discount);
-  
-  // 🔥 Round to nearest whole number (₹8048)
-  return Math.round(total);
-}, [totalAmount, discountAmount, discountType]);
-  // ===== EXISTING FUNCTIONS (SAME) =====
+
+  // ===== GRAND TOTAL WITH DISCOUNT + WALLET =====
+  const grandTotal = useMemo(() => {
+    const subtotal = totalAmount;
+    let discount = discountAmount;
+
+    if (discountType === 'percent') {
+      discount = (subtotal * discountAmount) / 100;
+    }
+
+    let total = Math.max(0, subtotal - discount);
+
+    // Advance pehle
+    if (useBalance && wallet?.balance > 0) {
+      total = Math.max(0, total - wallet.balance);
+    }
+
+    // Points baad me
+    if (usePoints && wallet?.points > 0) {
+      total = Math.max(0, total - wallet.points);
+    }
+
+    // Due — bacha hua due me
+    if (useDue) {
+      total = 0;
+    }
+
+    return Math.round(total);
+  }, [totalAmount, discountAmount, discountType, useBalance, usePoints, useDue, wallet]);
+
+  // ===== EXISTING HANDLERS =====
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showStaffDropdown && !event.target.closest('.staff-select-container')) {
@@ -294,26 +364,27 @@ const grandTotal = useMemo(() => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showStaffDropdown]);
 
-  // ✅ Per-service staff dropdown band karne ke liye
-useEffect(() => {
-  const handleClickOutside = (event) => {
-    if (!event.target.closest('.service-staff-dropdown')) {
-      setOpenStaffDropdown(null);
-    }
-  };
-  document.addEventListener('click', handleClickOutside);
-  return () => document.removeEventListener('click', handleClickOutside);
-}, []);
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.service-staff-dropdown')) {
+        setOpenStaffDropdown(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
-useEffect(() => {
-  const handleClickOutside = (event) => {
-    if (!event.target.closest('.customer-search-container')) {
-      setShowCustomerDropdown(false);
-    }
-  };
-  document.addEventListener('click', handleClickOutside);
-  return () => document.removeEventListener('click', handleClickOutside);
-}, []);
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.customer-search-container')) {
+        setShowCustomerDropdown(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  // ===== PRINT RECEIPT =====
   useEffect(() => {
     if (showReceiptModal && currentBill && receiptRef.current && !isMobile) {
       const timer = setTimeout(() => {
@@ -346,19 +417,18 @@ useEffect(() => {
     }
   };
 
-const shareOnWhatsApp = () => {
-  if (!currentBill) return;
+  const shareOnWhatsApp = () => {
+    if (!currentBill) return;
 
-  const phone = currentBill.customerPhone;
+    const phone = currentBill.customerPhone;
+    if (!phone) {
+      alert("Customer phone number not available");
+      return;
+    }
 
-  if (!phone) {
-    alert("Customer phone number not available");
-    return;
-  }
+    const billLink = `${window.location.origin}/bill/${currentBill._id}`;
 
-  const billLink = `${window.location.origin}/bill/${currentBill._id}`;
-
-  const message = `Hi ${currentBill.customerName} 👋
+    const message = `Hi ${currentBill.customerName} 👋
 
 Thank you for visiting ${currentBill.salonId?.name || "our salon"}.
 
@@ -373,13 +443,13 @@ ${billLink}
 Thank you! ❤️
 Powered by Onligro`;
 
-  window.open(
-    `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`,
-    "_blank"
-  );
-};
+    window.open(
+      `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`,
+      "_blank"
+    );
+  };
 
-  const displayedServices = searchService 
+  const displayedServices = searchService
     ? services.filter(service => service.name.toLowerCase().includes(searchService.toLowerCase()))
     : services.slice(0, 6);
 
@@ -413,88 +483,121 @@ Powered by Onligro`;
     );
   }
 
-  // 🔥 YAHAN BANAO - Return se PEHLE
-const isFormInvalid = (form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || creatingBill;
+  const isFormInvalid = (form.services.length === 0 && selectedProducts.length === 0) || !form.staffId || creatingBill;
 
-  // ================================================================
-  // ===== YAHAN SE RETURN STARTS (APNA EXISTING RETURN PASTE KARO) =====
-  // ================================================================
+  return (
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-3 md:p-4 overflow-x-hidden" style={{ width: '100%', maxWidth: '100vw' }}>
+      <div className="w-full max-w-6xl mx-auto px-2 sm:px-3 md:px-4">
 
- return (
-  <div className="min-h-screen bg-gray-50 p-2 sm:p-3 md:p-4 overflow-x-hidden" style={{ width: '100%', maxWidth: '100vw' }}>
-    <div className="w-full max-w-6xl mx-auto px-2 sm:px-3 md:px-4">
-        
         <div className="mb-4 sm:mb-6 md:mb-8">
           <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">💰 Billing System</h1>
           <p className="text-gray-600 mt-1 text-sm sm:text-base">Create and manage customer bills</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-          {/* Main Form */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4 md:p-6 sticky top-6 overflow-hidden">
               <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 text-gray-800">New Bill</h2>
-              
+
               <form onSubmit={createBill} className="space-y-4 sm:space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-                 <div className="relative customer-search-container">
-  <label className="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
-  <input
-    type="text"
-    value={form.customerName}
-    onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-    onFocus={() => form.customerName.length >= 2 && setShowCustomerDropdown(true)}
-    className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-    placeholder="Type customer name..."
-    required
-  />
+                  <div className="relative customer-search-container">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
+                    <input
+                      type="text"
+                      value={form.customerName}
+                      onChange={(e) => setForm({ ...form, customerName: e.target.value })}
+                      onFocus={() => form.customerName.length >= 2 && setShowCustomerDropdown(true)}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                      placeholder="Type customer name..."
+                      required
+                    />
 
-  {/* ✅ Suggestions Dropdown */}
-  {showCustomerDropdown && customerSuggestions.length > 0 && (
-    <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-      {customerSuggestions.map((customer) => (
-        <button
-          key={customer._id}
-          type="button"
-          onClick={() => {
-            setForm(prev => ({
-              ...prev,
-              customerName: customer.name,
-              customerPhone: customer.phone
-            }));
-            setShowCustomerDropdown(false);
-            setCustomerSuggestions([]);
-          }}
-          className="w-full px-4 py-3 text-left hover:bg-blue-50 transition border-b border-gray-100 last:border-0 flex items-center justify-between"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-              {customer.name.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <p className="font-medium text-gray-900 text-sm">{customer.name}</p>
-              <p className="text-xs text-gray-500">📞 {customer.phone}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-gray-400">{customer.totalVisits || 0} visits</p>
-          </div>
-        </button>
-      ))}
-    </div>
-  )}
+                    {showCustomerDropdown && customerSuggestions.length > 0 && (
+                      <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                        {customerSuggestions.map((customer) => (
+                          <button
+                            key={customer._id}
+                            type="button"
+                            onClick={() => {
+                              setForm(prev => ({
+                                ...prev,
+                                customerName: customer.name,
+                                customerPhone: customer.phone
+                              }));
+                              setShowCustomerDropdown(false);
+                              setCustomerSuggestions([]);
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-blue-50 transition border-b border-gray-100 last:border-0 flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                                {customer.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900 text-sm">{customer.name}</p>
+                                <p className="text-xs text-gray-500">📞 {customer.phone}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-gray-400">{customer.totalVisits || 0} visits</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-  {/* Loading */}
-  {customerSearchLoading && (
-    <div className="absolute right-3 top-10">
-      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  )}
-</div>
+                    {customerSearchLoading && (
+                      <div className="absolute right-3 top-10">
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
                     <input type="tel" value={form.customerPhone} onChange={(e) => setForm({ ...form, customerPhone: e.target.value })} className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm sm:text-base" placeholder="10 digit mobile number" required />
                   </div>
+
+                  {/* ✅ Wallet Display */}
+                  {wallet && form.customerPhone.length === 10 && (
+                    <div className="col-span-1 sm:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">₹</span>
+                        </div>
+                        <p className="text-sm font-semibold text-blue-900">Customer Wallet</p>
+                        {walletLoading && (
+                          <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin ml-auto"></div>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-white rounded-lg p-2 text-center shadow-sm">
+                          <p className="text-[10px] text-gray-500 mb-0.5">Points</p>
+                          <p className="text-base font-bold text-blue-600">{wallet.points || 0}</p>
+                        </div>
+                        <div className="bg-white rounded-lg p-2 text-center shadow-sm">
+                          <p className="text-[10px] text-gray-500 mb-0.5">Balance</p>
+                          <p className={`text-base font-bold ${wallet.balance >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            ₹{wallet.balance || 0}
+                          </p>
+                        </div>
+                      </div>
+
+                      {wallet.membershipPackage && (
+                        <div className="mt-2 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-2 flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] text-yellow-700 font-medium">🏆 {wallet.membershipPackage}</p>
+                          </div>
+                          {wallet.membershipExpiry && (
+                            <p className="text-[10px] text-yellow-600">
+                              Exp: {new Date(wallet.membershipExpiry).toLocaleDateString("en-IN")}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* ===== SERVICES SECTION ===== */}
@@ -506,270 +609,265 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                     {searchService && (<button type="button" onClick={() => setSearchService("")} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">✕</button>)}
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 max-h-80 overflow-y-auto">
-                   {displayedServices.map((service) => {
-  const isSelected = selectedServices.some(s => s.serviceId === service._id);
-  return (
-    <button
-      key={service._id}
-      type="button"
-      onClick={() => {
-        if (isSelected) {
-          setSelectedServices(prev => prev.filter(s => s.serviceId !== service._id));
-        } else {
-          const newService = {
-            serviceId: service._id,
-            serviceName: service.name,
-            unit_price: service.price,
-            quantity: 1,
-            line_total: service.price,
-            staff_ids: [],
-            staff_names: [],
-            duration: service.duration,
-          };
+                    {displayedServices.map((service) => {
+                      const isSelected = selectedServices.some(s => s.serviceId === service._id);
+                      return (
+                        <button
+                          key={service._id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedServices(prev => prev.filter(s => s.serviceId !== service._id));
+                            } else {
+                              const newService = {
+                                serviceId: service._id,
+                                serviceName: service.name,
+                                unit_price: service.price,
+                                quantity: 1,
+                                line_total: service.price,
+                                staff_ids: [],
+                                staff_names: [],
+                                duration: service.duration,
+                              };
 
-          setSelectedServices(prev => {
-            if (prev.length > 0 && prev[prev.length - 1].staff_ids.length > 0) {
-              const lastService = prev[prev.length - 1];
-              newService.staff_ids = [...lastService.staff_ids];
-              newService.staff_names = [...lastService.staff_names];
-            }
-            return [...prev, newService];
-          });
+                              setSelectedServices(prev => {
+                                if (prev.length > 0 && prev[prev.length - 1].staff_ids.length > 0) {
+                                  const lastService = prev[prev.length - 1];
+                                  newService.staff_ids = [...lastService.staff_ids];
+                                  newService.staff_names = [...lastService.staff_names];
+                                }
+                                return [...prev, newService];
+                              });
 
-          setOpenStaffDropdown(service._id);
-        }
-      }}
-      className={`p-2 sm:p-3 rounded-xl text-left transition-all text-sm sm:text-base ${
-        isSelected
-          ? 'bg-blue-600 text-white shadow-md'
-          : 'bg-gray-50 border-2 border-gray-200 hover:border-blue-300'
-      }`}
-    >
-      <div className="font-medium">{service.name}</div>
-      <div className={`text-sm mt-1 ${isSelected ? 'text-blue-100' : 'text-blue-600'}`}>
-        ₹{service.price}
-      </div>
-    </button>
-  );
-})}
+                              setOpenStaffDropdown(service._id);
+                            }
+                          }}
+                          className={`p-2 sm:p-3 rounded-xl text-left transition-all text-sm sm:text-base ${
+                            isSelected
+                              ? 'bg-blue-600 text-white shadow-md'
+                              : 'bg-gray-50 border-2 border-gray-200 hover:border-blue-300'
+                          }`}
+                        >
+                          <div className="font-medium">{service.name}</div>
+                          <div className={`text-sm mt-1 ${isSelected ? 'text-blue-100' : 'text-blue-600'}`}>
+                            ₹{service.price}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
-                {selectedServices.length > 0 && (
-  <div className="mt-4 border border-blue-200 bg-blue-50/50 rounded-xl p-3">
-    <div className="flex items-center justify-between mb-2">
-      <p className="text-sm font-medium text-blue-700">
-        📌 {selectedServices.length} Service{selectedServices.length > 1 ? 's' : ''} Selected
-      </p>
-      <button
-        type="button"
-        onClick={() => setSelectedServices([])}
-        className="text-xs text-red-500 hover:text-red-700 font-medium"
-      >
-        Clear All
-      </button>
-    </div>
 
-   {selectedServices.map((service) => (
-  <div
-    key={service.serviceId}
-    className="bg-white rounded-lg px-3 py-2 border border-blue-100 mb-2"
-  >
-    {/* Row 1: Name + Remove */}
-    <div className="flex items-center gap-2 mb-2">
-      <input
-        type="text"
-        value={service.serviceName}
-        onChange={(e) => {
-          setSelectedServices(prev =>
-            prev.map(s =>
-              s.serviceId === service.serviceId
-                ? { ...s, serviceName: e.target.value }
-                : s
-            )
-          );
-        }}
-        className="flex-1 min-w-0 px-2 py-1 border border-gray-200 rounded text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
+                  {selectedServices.length > 0 && (
+                    <div className="mt-4 border border-blue-200 bg-blue-50/50 rounded-xl p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-medium text-blue-700">
+                          📌 {selectedServices.length} Service{selectedServices.length > 1 ? 's' : ''} Selected
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedServices([])}
+                          className="text-xs text-red-500 hover:text-red-700 font-medium"
+                        >
+                          Clear All
+                        </button>
+                      </div>
 
-      <button
-        type="button"
-        onClick={() => {
-          setSelectedServices(prev =>
-            prev.filter(s => s.serviceId !== service.serviceId)
-          );
-        }}
-        className="text-red-400 hover:text-red-600 flex-shrink-0"
-      >
-        ✕
-      </button>
-    </div>
+                      {selectedServices.map((service) => (
+                        <div
+                          key={service.serviceId}
+                          className="bg-white rounded-lg px-3 py-2 border border-blue-100 mb-2"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <input
+                              type="text"
+                              value={service.serviceName}
+                              onChange={(e) => {
+                                setSelectedServices(prev =>
+                                  prev.map(s =>
+                                    s.serviceId === service.serviceId
+                                      ? { ...s, serviceName: e.target.value }
+                                      : s
+                                  )
+                                );
+                              }}
+                              className="flex-1 min-w-0 px-2 py-1 border border-gray-200 rounded text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
 
-    {/* Row 2: Price + Quantity + Line Total */}
-    <div className="flex items-center gap-2 flex-wrap mb-2">
-      {/* ✅ Price — ab Row 2 me */}
-      <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-500">₹</span>
-        <input
-          type="number"
-          value={service.unit_price}
-          onChange={(e) => {
-            const newPrice = Number(e.target.value) || 0;
-            setSelectedServices(prev =>
-              prev.map(s =>
-                s.serviceId === service.serviceId
-                  ? { ...s, unit_price: newPrice, line_total: newPrice * s.quantity }
-                  : s
-              )
-            );
-          }}
-          className="w-16 px-1.5 py-1 border border-gray-200 rounded text-sm text-center"
-          min="0"
-        />
-      </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedServices(prev =>
+                                  prev.filter(s => s.serviceId !== service.serviceId)
+                                );
+                              }}
+                              className="text-red-400 hover:text-red-600 flex-shrink-0"
+                            >
+                              ✕
+                            </button>
+                          </div>
 
-      {/* Quantity Stepper */}
-      <div className="flex items-center gap-1 border border-gray-200 rounded-lg">
-        <button
-          type="button"
-          onClick={() => {
-            const newQty = Math.max(1, service.quantity - 1);
-            setSelectedServices(prev =>
-              prev.map(s =>
-                s.serviceId === service.serviceId
-                  ? { ...s, quantity: newQty, line_total: s.unit_price * newQty }
-                  : s
-              )
-            );
-          }}
-          className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-        >
-          −
-        </button>
-        <span className="px-2 py-1 text-sm font-medium min-w-[25px] text-center">
-          {service.quantity}
-        </span>
-        <button
-          type="button"
-          onClick={() => {
-            const newQty = service.quantity + 1;
-            setSelectedServices(prev =>
-              prev.map(s =>
-                s.serviceId === service.serviceId
-                  ? { ...s, quantity: newQty, line_total: s.unit_price * newQty }
-                  : s
-              )
-            );
-          }}
-          className="px-2 py-1 text-gray-600 hover:bg-gray-100"
-        >
-          +
-        </button>
-      </div>
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs text-gray-500">₹</span>
+                              <input
+                                type="number"
+                                value={service.unit_price}
+                                onChange={(e) => {
+                                  const newPrice = Number(e.target.value) || 0;
+                                  setSelectedServices(prev =>
+                                    prev.map(s =>
+                                      s.serviceId === service.serviceId
+                                        ? { ...s, unit_price: newPrice, line_total: newPrice * s.quantity }
+                                        : s
+                                    )
+                                  );
+                                }}
+                                className="w-16 px-1.5 py-1 border border-gray-200 rounded text-sm text-center"
+                                min="0"
+                              />
+                            </div>
 
-      {/* Line Total */}
-      <span className="text-sm font-semibold text-gray-800">
-        ₹{service.line_total}
-      </span>
-    </div>
+                            <div className="flex items-center gap-1 border border-gray-200 rounded-lg">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newQty = Math.max(1, service.quantity - 1);
+                                  setSelectedServices(prev =>
+                                    prev.map(s =>
+                                      s.serviceId === service.serviceId
+                                        ? { ...s, quantity: newQty, line_total: s.unit_price * newQty }
+                                        : s
+                                    )
+                                  );
+                                }}
+                                className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+                              >
+                                −
+                              </button>
+                              <span className="px-2 py-1 text-sm font-medium min-w-[25px] text-center">
+                                {service.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newQty = service.quantity + 1;
+                                  setSelectedServices(prev =>
+                                    prev.map(s =>
+                                      s.serviceId === service.serviceId
+                                        ? { ...s, quantity: newQty, line_total: s.unit_price * newQty }
+                                        : s
+                                    )
+                                  );
+                                }}
+                                className="px-2 py-1 text-gray-600 hover:bg-gray-100"
+                              >
+                                +
+                              </button>
+                            </div>
 
-    {/* Row 3: Staff Dropdown */}
-    <div className="relative service-staff-dropdown">
-      <button
-        type="button"
-        onClick={() =>
-          setOpenStaffDropdown(
-            openStaffDropdown === service.serviceId ? null : service.serviceId
-          )
-        }
-        className={`w-full px-3 py-1.5 rounded-lg border text-left text-sm flex items-center justify-between ${
-          service.staff_ids.length === 0
-            ? "border-red-300 bg-red-50 text-red-600"
-            : "border-gray-200 bg-white text-gray-800"
-        }`}
-      >
-        <span className="truncate">
-          {service.staff_ids.length === 0
-            ? "⚠️ Select Staff"
-            : `👨‍💼 ${service.staff_names.join(", ")}`}
-        </span>
-        <svg
-          className="w-3 h-3 flex-shrink-0"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
+                            <span className="text-sm font-semibold text-gray-800">
+                              ₹{service.line_total}
+                            </span>
+                          </div>
 
-      {openStaffDropdown === service.serviceId && (
-        <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-          {staff.map((member) => {
-            const isSelected = service.staff_ids.includes(member._id);
-            return (
-              <button
-                key={member._id}
-                type="button"
-                onClick={() => {
-                  setSelectedServices(prev =>
-                    prev.map(s => {
-                      if (s.serviceId !== service.serviceId) return s;
+                          <div className="relative service-staff-dropdown">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenStaffDropdown(
+                                  openStaffDropdown === service.serviceId ? null : service.serviceId
+                                )
+                              }
+                              className={`w-full px-3 py-1.5 rounded-lg border text-left text-sm flex items-center justify-between ${
+                                service.staff_ids.length === 0
+                                  ? "border-red-300 bg-red-50 text-red-600"
+                                  : "border-gray-200 bg-white text-gray-800"
+                              }`}
+                            >
+                              <span className="truncate">
+                                {service.staff_ids.length === 0
+                                  ? "⚠️ Select Staff"
+                                  : `👨‍💼 ${service.staff_names.join(", ")}`}
+                              </span>
+                              <svg
+                                className="w-3 h-3 flex-shrink-0"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 9l-7 7-7-7"
+                                />
+                              </svg>
+                            </button>
 
-                      if (isSelected) {
-                        return {
-                          ...s,
-                          staff_ids: s.staff_ids.filter(id => id !== member._id),
-                          staff_names: s.staff_names.filter(n => n !== member.name),
-                        };
-                      } else {
-                        return {
-                          ...s,
-                          staff_ids: [...s.staff_ids, member._id],
-                          staff_names: [...s.staff_names, member.name],
-                        };
-                      }
-                    })
-                  );
-                }}
-                className={`w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center justify-between text-sm ${
-                  isSelected ? "bg-blue-50 text-blue-600" : "text-gray-700"
-                }`}
-              >
-                <div>
-                  <p className="font-medium">{member.name}</p>
-                  <p className="text-xs text-gray-400">
-                    {member.role || "Staff"}
-                  </p>
-                </div>
-                {isSelected && (
-                  <svg
-                    className="w-4 h-4 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  </div>
-))}
-  </div>
-)}
+                            {openStaffDropdown === service.serviceId && (
+                              <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                {staff.map((member) => {
+                                  const isSelected = service.staff_ids.includes(member._id);
+                                  return (
+                                    <button
+                                      key={member._id}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedServices(prev =>
+                                          prev.map(s => {
+                                            if (s.serviceId !== service.serviceId) return s;
+
+                                            if (isSelected) {
+                                              return {
+                                                ...s,
+                                                staff_ids: s.staff_ids.filter(id => id !== member._id),
+                                                staff_names: s.staff_names.filter(n => n !== member.name),
+                                              };
+                                            } else {
+                                              return {
+                                                ...s,
+                                                staff_ids: [...s.staff_ids, member._id],
+                                                staff_names: [...s.staff_names, member.name],
+                                              };
+                                            }
+                                          })
+                                        );
+                                      }}
+                                      className={`w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center justify-between text-sm ${
+                                        isSelected ? "bg-blue-50 text-blue-600" : "text-gray-700"
+                                      }`}
+                                    >
+                                      <div>
+                                        <p className="font-medium">{member.name}</p>
+                                        <p className="text-xs text-gray-400">
+                                          {member.role || "Staff"}
+                                        </p>
+                                      </div>
+                                      {isSelected && (
+                                        <svg
+                                          className="w-4 h-4 text-blue-600"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M5 13l4 4L19 7"
+                                          />
+                                        </svg>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* ===== PRODUCTS SECTION ===== */}
@@ -780,46 +878,46 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                     <span className="absolute left-3 top-3 text-gray-400">🔍</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 max-h-48 overflow-y-auto">
-                {products.filter(p => p.name.toLowerCase().includes(searchProduct.toLowerCase())).slice(0, 12).map((product) => {
-  const isSelected = selectedProducts.find(p => p.productId === product._id);
-  const isOutOfStock = product.stockQuantity <= 0;
+                    {products.filter(p => p.name.toLowerCase().includes(searchProduct.toLowerCase())).slice(0, 12).map((product) => {
+                      const isSelected = selectedProducts.find(p => p.productId === product._id);
+                      const isOutOfStock = product.stockQuantity <= 0;
 
-  return (
-    <button
-      key={product._id}
-      type="button"
-      disabled={isOutOfStock}
-      onClick={() => {
-        if (isOutOfStock) return;
-        if (isSelected) {
-          setSelectedProducts(selectedProducts.filter(p => p.productId !== product._id));
-        } else {
-          setSelectedProducts([...selectedProducts, { productId: product._id, name: product.name, price: product.mrp, quantity: 1, stock: product.stockQuantity }]);
-        }
-      }}
-      className={`p-2 rounded-xl text-left transition-all text-sm ${
-        isOutOfStock
-          ? 'bg-gray-100 border-2 border-gray-200 opacity-50 cursor-not-allowed'
-          : isSelected
-          ? 'bg-green-600 text-white shadow-md'
-          : 'bg-gray-50 border-2 border-gray-200 hover:border-green-300'
-      }`}
-    >
-      <div className={`font-medium text-xs sm:text-sm ${isOutOfStock ? 'text-gray-400' : ''}`}>
-        {product.name}
-      </div>
-      <div className={`text-xs ${
-        isOutOfStock
-          ? 'text-red-500'
-          : isSelected
-          ? 'text-green-100'
-          : 'text-gray-500'
-      }`}>
-        ₹{product.mrp} | {isOutOfStock ? '❌ Out of Stock' : `Stock: ${product.stockQuantity}`}
-      </div>
-    </button>
-  );
-})}
+                      return (
+                        <button
+                          key={product._id}
+                          type="button"
+                          disabled={isOutOfStock}
+                          onClick={() => {
+                            if (isOutOfStock) return;
+                            if (isSelected) {
+                              setSelectedProducts(selectedProducts.filter(p => p.productId !== product._id));
+                            } else {
+                              setSelectedProducts([...selectedProducts, { productId: product._id, name: product.name, price: product.mrp, quantity: 1, stock: product.stockQuantity }]);
+                            }
+                          }}
+                          className={`p-2 rounded-xl text-left transition-all text-sm ${
+                            isOutOfStock
+                              ? 'bg-gray-100 border-2 border-gray-200 opacity-50 cursor-not-allowed'
+                              : isSelected
+                              ? 'bg-green-600 text-white shadow-md'
+                              : 'bg-gray-50 border-2 border-gray-200 hover:border-green-300'
+                          }`}
+                        >
+                          <div className={`font-medium text-xs sm:text-sm ${isOutOfStock ? 'text-gray-400' : ''}`}>
+                            {product.name}
+                          </div>
+                          <div className={`text-xs ${
+                            isOutOfStock
+                              ? 'text-red-500'
+                              : isSelected
+                              ? 'text-green-100'
+                              : 'text-gray-500'
+                          }`}>
+                            ₹{product.mrp} | {isOutOfStock ? '❌ Out of Stock' : `Stock: ${product.stockQuantity}`}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                   {selectedProducts.length > 0 && (
                     <div className="mt-3 border border-green-200 bg-green-50/50 rounded-xl p-3">
@@ -827,103 +925,167 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                         <p className="text-sm font-medium text-green-700">📦 {selectedProducts.length} Product{selectedProducts.length > 1 ? 's' : ''} Selected</p>
                         <button type="button" onClick={() => setSelectedProducts([])} className="text-xs text-red-500 hover:text-red-700 font-medium">Clear All</button>
                       </div>
-           {selectedProducts.map((p) => (
-  <div key={p.productId} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100 mb-1 flex-wrap gap-2">
+                      {selectedProducts.map((p) => (
+                        <div key={p.productId} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100 mb-1 flex-wrap gap-2">
+                          <input
+                            type="text"
+                            value={p.name}
+                            onChange={(e) => {
+                              setSelectedProducts(prev =>
+                                prev.map(sp =>
+                                  sp.productId === p.productId
+                                    ? { ...sp, name: e.target.value }
+                                    : sp
+                                )
+                              );
+                            }}
+                            className="flex-1 min-w-[80px] px-2 py-1 border border-gray-200 rounded text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                            placeholder="Product name"
+                          />
 
-    {/* ✅ Editable Product Name */}
-    <input
-      type="text"
-      value={p.name}
-      onChange={(e) => {
-        setSelectedProducts(prev =>
-          prev.map(sp =>
-            sp.productId === p.productId
-              ? { ...sp, name: e.target.value }
-              : sp
-          )
-        );
-      }}
-      className="flex-1 min-w-[80px] px-2 py-1 border border-gray-200 rounded text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-      placeholder="Product name"
-    />
+                          <input
+                            type="number"
+                            value={p.price}
+                            onChange={(e) => {
+                              const newPrice = Number(e.target.value) || 0;
+                              setSelectedProducts(prev =>
+                                prev.map(sp =>
+                                  sp.productId === p.productId ? { ...sp, price: newPrice } : sp
+                                )
+                              );
+                            }}
+                            className="w-16 sm:w-20 px-2 py-1 border border-gray-200 rounded text-xs text-center"
+                            min="0"
+                          />
 
-    {/* ✅ Editable Price */}
-    <input
-      type="number"
-      value={p.price}
-      onChange={(e) => {
-        const newPrice = Number(e.target.value) || 0;
-        setSelectedProducts(prev =>
-          prev.map(sp =>
-            sp.productId === p.productId ? { ...sp, price: newPrice } : sp
-          )
-        );
-      }}
-      className="w-16 sm:w-20 px-2 py-1 border border-gray-200 rounded text-xs text-center"
-      min="0"
-    />
+                          <input
+                            type="number"
+                            value={p.quantity}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '') {
+                                setSelectedProducts(prev =>
+                                  prev.map(sp =>
+                                    sp.productId === p.productId ? { ...sp, quantity: '' } : sp
+                                  )
+                                );
+                              } else {
+                                const qty = parseInt(val) || 0;
+                                if (qty >= 0) {
+                                  setSelectedProducts(prev =>
+                                    prev.map(sp =>
+                                      sp.productId === p.productId ? { ...sp, quantity: qty } : sp
+                                    )
+                                  );
+                                }
+                              }
+                            }}
+                            className="w-12 px-1 py-0.5 border border-gray-200 rounded text-xs text-center"
+                            min="0"
+                            max={p.stock}
+                          />
 
-    {/* ✅ Editable Quantity */}
-    <input
-      type="number"
-      value={p.quantity}
-      onChange={(e) => {
-        const val = e.target.value;
-        if (val === '') {
-          setSelectedProducts(prev =>
-            prev.map(sp =>
-              sp.productId === p.productId ? { ...sp, quantity: '' } : sp
-            )
-          );
-        } else {
-          const qty = parseInt(val) || 0;
-          if (qty >= 0) {
-            setSelectedProducts(prev =>
-              prev.map(sp =>
-                sp.productId === p.productId ? { ...sp, quantity: qty } : sp
-              )
-            );
-          }
-        }
-      }}
-      className="w-12 px-1 py-0.5 border border-gray-200 rounded text-xs text-center"
-      min="0"
-      max={p.stock}
-    />
-
-    <button
-      type="button"
-      onClick={() => setSelectedProducts(selectedProducts.filter(sp => sp.productId !== p.productId))}
-      className="text-red-400 hover:text-red-600 ml-2"
-    >
-      ✕
-    </button>
-  </div>
-))}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedProducts(selectedProducts.filter(sp => sp.productId !== p.productId))}
+                            className="text-red-400 hover:text-red-600 ml-2"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
 
                {/* ===== PAYMENT MODE ===== */}
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-2">Payment Mode *</label>
-  <div className="flex gap-2 sm:gap-3">
-    {['Cash', 'UPI', 'Card'].map((mode) => (
-      <button
-        key={mode}
-        type="button"
-        onClick={() => setForm({ ...form, paymentMode: mode })}
-        className={`flex-1 py-2 sm:py-2.5 rounded-xl font-medium transition-all text-sm sm:text-base ${
-          form.paymentMode === mode
-            ? 'bg-blue-600 text-white shadow-md'
-            : 'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-blue-300'
-        }`}
-      >
-        {mode}
-      </button>
-    ))}
-  </div>
-</div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Payment Mode *</label>
+                  {/* ✅ FIX: Agar amount > 0 hai ya customer due kar raha hai tabhi option dikhao */}
+                  {grandTotal > 0 || useDue ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {['Cash', 'UPI', 'Card', 'Due'].map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => {
+                            if (mode === 'Due') {
+                              setUseDue(true);
+                              setForm({ ...form, paymentMode: 'Due' });
+                            } else {
+                              setUseDue(false);
+                              setForm({ ...form, paymentMode: mode });
+                            }
+                          }}
+                          className={`py-2 sm:py-2.5 rounded-xl font-medium transition-all text-sm sm:text-base ${
+                            mode === 'Due' && useDue
+                              ? 'bg-red-600 text-white shadow-md'
+                              : form.paymentMode === mode && !useDue
+                              ? 'bg-blue-600 text-white shadow-md'
+                              : 'bg-gray-50 border-2 border-gray-200 text-gray-700 hover:border-blue-300'
+                          }`}
+                        >
+                          {mode === 'Due' ? '🔴 Due' : mode}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+                      <p className="text-green-700 font-semibold text-sm">✅ Bill Fully Paid via Wallet/Points</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* ===== WALLET USE CHECKBOXES ===== */}
+                {wallet && (wallet.points > 0 || wallet.balance > 0) && (
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+                    <p className="text-sm font-semibold text-blue-900 mb-3">💳 Use Wallet</p>
+                    <div className="space-y-2">
+
+                      {/* Advance */}
+                      {wallet.balance > 0 && (
+                        <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-green-100 cursor-pointer hover:bg-green-50 transition">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={useBalance}
+                              onChange={(e) => setUseBalance(e.target.checked)}
+                              className="w-5 h-5 text-green-600 rounded"
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              Use ₹{wallet.balance} advance
+                            </span>
+                          </div>
+                          <span className="text-sm font-bold text-green-600">
+                            ₹{wallet.balance} off
+                          </span>
+                        </label>
+                      )}
+
+                      {/* Points */}
+                      {wallet.points > 0 && (
+                        <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-100 cursor-pointer hover:bg-blue-50 transition">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={usePoints}
+                              onChange={(e) => setUsePoints(e.target.checked)}
+                              className="w-5 h-5 text-blue-600 rounded"
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              Use {wallet.points} points
+                            </span>
+                          </div>
+                          <span className="text-sm font-bold text-blue-600">
+                            ₹{wallet.points} off
+                          </span>
+                        </label>
+                      )}
+
+                    </div>
+                  </div>
+                )}
+
                 {/* ===== FINAL AMOUNT ===== */}
                 <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
                   <div className="flex justify-between items-center mb-2">
@@ -938,8 +1100,7 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                     <span className="text-gray-600 font-medium text-sm sm:text-base">Subtotal:</span>
                     <span className="text-xl font-bold text-blue-600">₹{totalAmount}</span>
                   </div>
-                  
-                  {/* DISCOUNT SECTION */}
+
                   <div className="mt-3">
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-sm font-medium text-gray-700">Discount</label>
@@ -980,8 +1141,7 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                       </div>
                     </div>
                   </div>
-                  
-                  {/* TOTAL */}
+
                   <div className="border-t pt-3 mt-3">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600 font-medium text-sm sm:text-base">Total:</span>
@@ -989,21 +1149,21 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                     </div>
                   </div>
                 </div>
-                    
-              <button 
-  type="submit" 
-  disabled={
-    (selectedServices.length === 0 && selectedProducts.length === 0) || 
-    creatingBill
-  }
-  className={`w-full text-white font-semibold py-2.5 sm:py-3 rounded-xl text-base sm:text-lg no-print transition ${
-    (selectedServices.length === 0 && selectedProducts.length === 0) || creatingBill
-      ? 'bg-gray-400 cursor-not-allowed' 
-      : 'bg-blue-600 hover:bg-blue-700'
-  }`}
->
-  {creatingBill ? 'Creating Bill...' : '💾 Save & Print Bill'}
-</button>
+
+                <button
+                  type="submit"
+                  disabled={
+                    (selectedServices.length === 0 && selectedProducts.length === 0) ||
+                    creatingBill
+                  }
+                  className={`w-full text-white font-semibold py-2.5 sm:py-3 rounded-xl text-base sm:text-lg no-print transition ${
+                    (selectedServices.length === 0 && selectedProducts.length === 0) || creatingBill
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {creatingBill ? 'Creating Bill...' : '💾 Save & Print Bill'}
+                </button>
               </form>
             </div>
           </div>
@@ -1022,45 +1182,59 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                       <div key={bill._id} className="border border-gray-100 rounded-xl p-3 hover:shadow-md transition-all">
                         <div className="flex justify-between items-start mb-2">
                           <div><p className="font-semibold text-gray-900 text-sm sm:text-base">{bill.customerName}</p><p className="text-xs text-gray-500">{bill.billNumber}</p></div>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${bill.paymentMode === 'Cash' ? 'bg-green-100 text-green-700' : bill.paymentMode === 'UPI' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{bill.paymentMode}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            bill.paymentMode === 'Cash' ? 'bg-green-100 text-green-700' :
+                            bill.paymentMode === 'UPI' ? 'bg-blue-100 text-blue-700' :
+                            bill.paymentMode === 'Due' ? 'bg-red-100 text-red-700' :
+                            'bg-purple-100 text-purple-700'
+                          }`}>{bill.paymentMode}</span>
                         </div>
-                     <div className="flex justify-between items-center gap-2">
-  <div className="flex-1 min-w-0">
-    {(() => {
-      // ✅ Saare staff ke naam nikaalo
-      const allStaffNames = [];
-      if (bill.services && bill.services.length > 0) {
-        bill.services.forEach((service) => {
-          (service.staff_names || []).forEach((name) => {
-            if (name && !allStaffNames.includes(name)) {
-              allStaffNames.push(name);
-            }
-          });
-        });
-      }
-      // Fallback — purana format
-      if (allStaffNames.length === 0 && bill.staffName) {
-        allStaffNames.push(bill.staffName);
-      }
+                        <div className="flex justify-between items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            {(() => {
+                              const allStaffNames = [];
+                              if (bill.services && bill.services.length > 0) {
+                                bill.services.forEach((service) => {
+                                  (service.staff_names || []).forEach((name) => {
+                                    if (name && !allStaffNames.includes(name)) {
+                                      allStaffNames.push(name);
+                                    }
+                                  });
+                                });
+                              }
+                              if (allStaffNames.length === 0 && bill.staffName) {
+                                allStaffNames.push(bill.staffName);
+                              }
 
-      return allStaffNames.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
-          {allStaffNames.map((name, idx) => (
-            <span
-              key={idx}
-              className="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-medium rounded-full border border-blue-100 truncate max-w-full"
-            >
-              {name}
-            </span>
-          ))}
-        </div>
-      ) : (
-        <p className="text-sm text-gray-600">Staff</p>
-      );
-    })()}
-  </div>
-  <p className="text-lg font-bold text-blue-600 flex-shrink-0">₹{bill.finalAmount}</p>
-</div>
+                              return allStaffNames.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {allStaffNames.map((name, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-medium rounded-full border border-blue-100 truncate max-w-full"
+                                    >
+                                      {name}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-600">Staff</p>
+                              );
+                            })()}
+                          </div>
+                      {/* ✅ FIX: Ab bill history me proper Asli bill value aur payment method dikhega */}
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-lg font-bold text-gray-800">
+                              ₹{(bill.finalAmount || 0) + (bill.pointsUsed || 0) + (bill.balanceUsed || 0) + (bill.dueAdded || 0)}
+                            </p>
+                            <div className="flex flex-col items-end mt-1 space-y-1">
+                              {bill.dueAdded > 0 && <span className="text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded font-medium border border-red-100">Due: ₹{bill.dueAdded}</span>}
+                              {bill.pointsUsed > 0 && <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100">Points: ₹{bill.pointsUsed}</span>}
+                              {bill.balanceUsed > 0 && <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded border border-green-100">Advance: ₹{bill.balanceUsed}</span>}
+                              {bill.finalAmount > 0 && <span className="text-[10px] text-gray-500 font-medium">Paid: ₹{bill.finalAmount}</span>}
+                            </div>
+                          </div>
+                        </div>
                         <p className="text-xs text-gray-400 mt-1">{new Date(bill.createdAt).toLocaleDateString()}</p>
                       </div>
                     ))}
@@ -1105,6 +1279,26 @@ const isFormInvalid = (form.services.length === 0 && selectedProducts.length ===
                   <div className="flex justify-between font-bold mt-1" style={{ fontSize: '12px' }}><span>TOTAL:</span><span>₹{currentBill.finalAmount}</span></div>
                   <div className="flex justify-between mt-1"><span>Payment:</span><span>{currentBill.paymentMode}</span></div>
                 </div>
+
+                {/* ✅ Loyalty Details */}
+                {(currentBill.pointsEarned > 0 || currentBill.pointsUsed > 0 || currentBill.balanceUsed > 0 || currentBill.dueAdded > 0) && (
+                  <div style={{ fontSize: '10px', marginTop: '6px' }}>
+                    <div className="border-bottom my-1"></div>
+                    {currentBill.pointsEarned > 0 && (
+                      <div className="flex justify-between"><span>🎁 Points Earned:</span><span>+{currentBill.pointsEarned}</span></div>
+                    )}
+                    {currentBill.pointsUsed > 0 && (
+                      <div className="flex justify-between"><span>🎯 Points Used:</span><span>{currentBill.pointsUsed}</span></div>
+                    )}
+                    {currentBill.balanceUsed > 0 && (
+                      <div className="flex justify-between"><span>💰 Advance Used:</span><span>₹{currentBill.balanceUsed}</span></div>
+                    )}
+                    {currentBill.dueAdded > 0 && (
+                      <div className="flex justify-between"><span>📝 Due Added:</span><span>₹{currentBill.dueAdded}</span></div>
+                    )}
+                  </div>
+                )}
+
                 <div className="border-bottom my-2"></div>
                 <div className="text-center" style={{ fontSize: '9px' }}><p>✨ Thank you! Visit Again ✨</p><p style={{ fontSize: '8px', marginTop: '4px' }}>Powered by Onligro</p></div>
               </div>

@@ -16,7 +16,10 @@ import {
   CreditCard, 
   CheckCircle,
   Receipt,
-  MapPin
+  MapPin,
+  Gift,
+  Wallet,
+  AlertCircle
 } from 'lucide-react';
 
 export default function BillPrintPage({ params }) {
@@ -40,7 +43,6 @@ export default function BillPrintPage({ params }) {
         const data = await res.json();
         setBill(data.bill);
         
-        // Set browser title
         if (data.bill) {
           document.title = `Invoice ${data.bill.billNumber} | ${data.bill.salonId?.name || 'Salon'}`;
         }
@@ -90,8 +92,25 @@ export default function BillPrintPage({ params }) {
     });
   };
 
-  const discountAmount = bill.totalAmount - bill.finalAmount;
-  const discountPercentage = bill.discount || 0;
+  // ✅ Correct discount calculation
+  let discountAmount = 0;
+  if (bill.discountType === 'percent') {
+    discountAmount = Math.round((bill.totalAmount * (bill.discount || 0)) / 100);
+  } else {
+    discountAmount = Math.round(bill.discount || 0);
+  }
+
+  // ✅ Payable amount (after discount)
+  const payableAmount = Math.round(bill.totalAmount - discountAmount);
+
+  // ✅ Loyalty values
+  const pointsEarned = bill.pointsEarned || 0;
+  const pointsUsed = bill.pointsUsed || 0;
+  const balanceUsed = bill.balanceUsed || 0;
+  const dueAdded = bill.dueAdded || 0;
+
+  const showLoyalty = pointsEarned > 0 || pointsUsed > 0 || balanceUsed > 0 || dueAdded > 0;
+  const isDue = bill.paymentMode === 'Due' || dueAdded > 0;
 
   return (
     <>
@@ -155,13 +174,24 @@ export default function BillPrintPage({ params }) {
                     {formatTime(bill.createdAt)}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 bg-green-50 px-3 py-1 rounded-full">
-                  <CheckCircle size={14} className="text-green-600" />
-                  <span className="text-xs font-medium text-green-700">Paid</span>
+                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${
+                  isDue ? 'bg-red-50' : 'bg-green-50'
+                }`}>
+                  {isDue ? (
+                    <>
+                      <AlertCircle size={14} className="text-red-600" />
+                      <span className="text-xs font-medium text-red-700">Due</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={14} className="text-green-600" />
+                      <span className="text-xs font-medium text-green-700">Paid</span>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Customer */}
+              {/* Customer + Staff */}
               <div className="grid grid-cols-2 gap-4 py-4 border-b border-gray-100">
                 <div>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wider flex items-center gap-1">
@@ -174,26 +204,26 @@ export default function BillPrintPage({ params }) {
                   </p>
                 </div>
                 <div>
-  <p className="text-[10px] text-gray-400 uppercase tracking-wider flex items-center gap-1">
-    <Users size={12} /> Staff
-  </p>
-  <p className="text-sm font-medium text-gray-700">
-    {(() => {
-      const names = [];
-      if (bill.services && bill.services.length > 0) {
-        bill.services.forEach((service) => {
-          (service.staff_names || []).forEach((name) => {
-            if (name && !names.includes(name)) names.push(name);
-          });
-        });
-      }
-      if (names.length === 0 && bill.staffName) {
-        names.push(bill.staffName);
-      }
-      return names.join(", ") || "Staff";
-    })()}
-  </p>
-</div>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                    <Users size={12} /> Staff
+                  </p>
+                  <p className="text-sm font-medium text-gray-700">
+                    {(() => {
+                      const names = [];
+                      if (bill.services && bill.services.length > 0) {
+                        bill.services.forEach((service) => {
+                          (service.staff_names || []).forEach((name) => {
+                            if (name && !names.includes(name)) names.push(name);
+                          });
+                        });
+                      }
+                      if (names.length === 0 && bill.staffName) {
+                        names.push(bill.staffName);
+                      }
+                      return names.join(", ") || "Staff";
+                    })()}
+                  </p>
+                </div>
               </div>
 
               {/* Services */}
@@ -202,20 +232,19 @@ export default function BillPrintPage({ params }) {
                   <p className="text-[10px] text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-3">
                     <Scissors size={12} /> Services
                   </p>
-                 {bill.services.map((s, i) => (
-  <div key={i} className="py-1.5 border-b border-dashed border-gray-100 last:border-0">
-    <div className="flex justify-between items-center text-sm">
-      <span className="text-gray-700">{s.serviceName}</span>
-      <span className="font-medium text-gray-800">₹{s.price}</span>
-    </div>
-    {/* ✅ Staff names */}
-    {s.staff_names && s.staff_names.length > 0 && (
-      <div className="text-xs text-gray-500 mt-0.5">
-        👨‍💼 {s.staff_names.join(", ")}
-      </div>
-    )}
-  </div>
-))}
+                  {bill.services.map((s, i) => (
+                    <div key={i} className="py-1.5 border-b border-dashed border-gray-100 last:border-0">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-700">{s.serviceName}</span>
+                        <span className="font-medium text-gray-800">₹{s.price}</span>
+                      </div>
+                      {s.staff_names && s.staff_names.length > 0 && (
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          👨‍💼 {s.staff_names.join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -236,7 +265,7 @@ export default function BillPrintPage({ params }) {
                 </div>
               )}
 
-              {/* Totals */}
+              {/* ===== TOTALS ===== */}
               <div className="pt-4">
                 <div className="flex justify-between text-sm py-1">
                   <span className="text-gray-500">Subtotal</span>
@@ -247,27 +276,94 @@ export default function BillPrintPage({ params }) {
                   <div className="flex justify-between text-sm py-1 text-green-600">
                     <span>
                       Discount 
-                      {bill.discountType === 'percent' && ` (${discountPercentage}%)`}
+                      {bill.discountType === 'percent' && ` (${bill.discount}%)`}
                     </span>
                     <span>-₹{discountAmount}</span>
                   </div>
                 )}
                 
                 <div className="flex justify-between text-lg font-bold mt-3 pt-3 border-t-2 border-gray-200">
-                  <span className="text-gray-800">Grand Total</span>
-                  <span className="text-blue-600">₹{bill.finalAmount}</span>
+                  <span className="text-gray-800">Total Amount</span>
+                  <span className="text-blue-600">₹{payableAmount}</span>
                 </div>
               </div>
 
-              {/* Payment */}
-              <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
-                <span className="text-xs text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <CreditCard size={14} /> Payment
-                </span>
-                <span className="text-sm font-medium text-green-600 flex items-center gap-1.5">
-                  <CheckCircle size={14} /> {bill.paymentMode}
-                </span>
-              </div>
+              {/* ===== PAYMENT + LOYALTY BREAKDOWN ===== */}
+              {showLoyalty && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider flex items-center gap-1.5 mb-3">
+                    <Wallet size={12} /> Payment Breakdown
+                  </p>
+
+                  <div className="space-y-2">
+                    {/* Advance Used */}
+                    {balanceUsed > 0 && (
+                      <div className="flex justify-between items-center text-sm bg-green-50 px-3 py-2 rounded-lg">
+                        <span className="text-green-700 flex items-center gap-2">
+                          <Wallet size={14} /> Advance Used
+                        </span>
+                        <span className="font-semibold text-green-700">-₹{balanceUsed}</span>
+                      </div>
+                    )}
+
+                    {/* Points Used */}
+                    {pointsUsed > 0 && (
+                      <div className="flex justify-between items-center text-sm bg-blue-50 px-3 py-2 rounded-lg">
+                        <span className="text-blue-700 flex items-center gap-2">
+                          <Gift size={14} /> Points Used ({pointsUsed} pts)
+                        </span>
+                        <span className="font-semibold text-blue-700">-₹{pointsUsed}</span>
+                      </div>
+                    )}
+
+                    {/* Cash Paid */}
+                    {bill.finalAmount > 0 && (
+                      <div className="flex justify-between items-center text-sm bg-gray-50 px-3 py-2 rounded-lg">
+                        <span className="text-gray-700 flex items-center gap-2">
+                          <CreditCard size={14} /> {bill.paymentMode} Paid
+                        </span>
+                        <span className="font-semibold text-gray-800">₹{bill.finalAmount}</span>
+                      </div>
+                    )}
+
+                    {/* Due Added */}
+                    {dueAdded > 0 && (
+                      <div className="flex justify-between items-center text-sm bg-red-50 px-3 py-2 rounded-lg">
+                        <span className="text-red-700 flex items-center gap-2">
+                          <AlertCircle size={14} /> Added to Due
+                        </span>
+                        <span className="font-semibold text-red-700">₹{dueAdded}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Points Earned */}
+                  {pointsEarned > 0 && (
+                    <div className="mt-3 flex justify-between items-center bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 px-3 py-2.5 rounded-lg">
+                      <span className="text-yellow-800 flex items-center gap-2 text-sm font-medium">
+                        <Gift size={16} /> Points Earned
+                      </span>
+                      <span className="font-bold text-yellow-800">+{pointsEarned} pts</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ===== PAYMENT MODE (only if no loyalty) ===== */}
+              {!showLoyalty && (
+                <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+                  <span className="text-xs text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <CreditCard size={14} /> Payment
+                  </span>
+                  <span className={`text-sm font-medium flex items-center gap-1.5 ${
+                    isDue ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                    {isDue ? <AlertCircle size={14} /> : <CheckCircle size={14} />} 
+                    {bill.paymentMode}
+                  </span>
+                </div>
+              )}
+
             </div>
 
             {/* ===== FOOTER ===== */}
