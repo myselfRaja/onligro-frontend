@@ -46,6 +46,7 @@ export default function DashboardContent({
   totalStaff,
   paymentSplit = { cash: 0, upi: 0, card: 0, cashCount: 0, upiCount: 0, cardCount: 0 },
   customerInsights = { new: 0, returning: 0 },
+  paymentBreakdown = { dueCreated: 0, dueCollected: 0, pointsUsed: 0, balanceUsed: 0, cashCollected: 0 },
 }) {
 
   const router = useRouter();
@@ -279,152 +280,211 @@ export default function DashboardContent({
      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           
           {/* LEFT: Recent Bills (Takes 2/3 space) - Same design as before */}
-         <motion.div 
+        <motion.div 
   initial={{ opacity: 0, x: -20 }}
   animate={{ opacity: 1, x: 0 }}
   transition={{ delay: 0.2 }}
-  className="lg:col-span-2 min-w-0"
+  className="lg:col-span-2 min-w-0 flex"
 >
-  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden w-full">
-              {/* Header */}
-              <div className="px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                      Recent Bills
-                    </h2>
-                    <p className="text-xs text-gray-400 mt-0.5">{stats.todayBills || 0} bills today</p>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
-                    <span>🟢</span> Live Updates
-                  </div>
-                </div>
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden w-full flex flex-col h-full min-h-[400px] lg:min-h-[500px]">
+    
+    {/* Header */}
+    <div className="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex-shrink-0">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-sm sm:text-base font-semibold text-gray-800 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+            Recent Bills
+          </h2>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {recentBills.length} {recentBills.length === 1 ? 'bill' : 'bills'} today
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+          <span>🟢</span>
+          <span className="hidden sm:inline">Live Updates</span>
+        </div>
+      </div>
+    </div>
+
+    {/* Bill List — Scrollable */}
+    <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+      {recentBills.length === 0 ? (
+        /* Empty state */
+        <div className="h-full flex flex-col items-center justify-center p-6 sm:p-10 text-center">
+          <Gift size={40} className="sm:w-12 sm:h-12 text-gray-300 mb-3" />
+          <p className="text-sm font-medium text-gray-500 mb-1">
+            No bills created today
+          </p>
+          <p className="text-xs text-gray-400 mb-4">
+            Aaj ka pehla bill banaiye
+          </p>
+          <button
+            onClick={() => router.push('/owner/billing')}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition"
+          >
+            + Create First Bill
+          </button>
+        </div>
+      ) : (
+        recentBills.map((bill, i) => (
+          <div
+            key={i}
+            className="px-3 sm:px-4 py-2.5 transition-all duration-200 hover:bg-gray-50/80"
+          >
+            {/* ===== DESKTOP / TABLET LAYOUT (sm and above) ===== */}
+            <div className="hidden sm:flex sm:items-center sm:gap-3">
+              {/* Time + Status */}
+              <div className="flex items-center gap-2 min-w-[130px] flex-shrink-0">
+                <span className="text-xs sm:text-sm font-semibold text-gray-800">
+                  {new Date(bill.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+                <span className="text-gray-300 text-sm">·</span>
+                <span className="text-[10px] sm:text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                  Completed
+                </span>
               </div>
 
-              {/* Bill Rows - Same as before */}
-              <div className="divide-y divide-gray-100">
-                {recentBills.length === 0 ? (
-                  <div className="p-10 text-center">
-                    <Gift size={32} className="mx-auto text-gray-300 mb-2" />
-                    <p className="text-sm text-gray-500">
-                      No bills created today 💸
-                    </p>
+              {/* Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="font-medium text-gray-800 text-sm truncate">
+                    {bill.customerName}
+                  </span>
+                  <span className="text-gray-400">·</span>
+                  
+                  {/* Amount + Breakdown */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-gray-600 font-semibold text-sm">
+                      ₹{bill.totalBillAmount || bill.amount}
+                    </span>
+                    {bill.dueAmount > 0 && (
+                      <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-100 font-medium">
+                        Due: ₹{bill.dueAmount}
+                      </span>
+                    )}
+                    {bill.pointsUsed > 0 && (
+                      <span className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-medium">
+                        Pts: ₹{bill.pointsUsed}
+                      </span>
+                    )}
+                    {bill.balanceUsed > 0 && (
+                      <span className="text-[9px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded border border-green-100 font-medium">
+                        Adv: ₹{bill.balanceUsed}
+                      </span>
+                    )}
                   </div>
-                ) : (
-                  recentBills.slice(0, 9).map((bill, i) => (
-                    <div
-                      key={i}
-                      className="px-3 sm:px-4 py-2.5 transition-all duration-200 hover:bg-gray-50/80"
+
+                  <span className="text-gray-300">•</span>
+                  
+                  {/* Services */}
+                  <span className="text-xs text-gray-500 truncate max-w-[200px]">
+                    {bill.services?.length > 0 && bill.services.join(' + ')}
+                    {bill.services?.length > 0 && bill.products?.length > 0 && ' + '}
+                    {bill.products?.length > 0 && bill.products.map(p => `${p.productName} ×${p.quantity}`).join(' + ')}
+                    {(!bill.services || bill.services.length === 0) && (!bill.products || bill.products.length === 0) && 'Service'}
+                  </span>
+
+                  <span className="text-gray-300">•</span>
+
+                  {/* Staff */}
+                  <span className="text-xs text-gray-500 flex items-center gap-1 flex-wrap">
+                    <User size={10} className="text-gray-400" />
+                    {bill.staffNames && bill.staffNames.length > 0 ? (
+                      bill.staffNames.slice(0, 2).join(', ')
+                    ) : (
+                      bill.staffName || 'Staff'
+                    )}
+                    {bill.staffNames && bill.staffNames.length > 2 && (
+                      <span className="text-gray-400">+{bill.staffNames.length - 2}</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ===== MOBILE LAYOUT (below sm) ===== */}
+            <div className="sm:hidden">
+              {/* Row 1: Time + Status */}
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-gray-800">
+                  {new Date(bill.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                  Completed
+                </span>
+              </div>
+
+              {/* Row 2: Customer + Amount */}
+              <div className="flex items-center justify-between mb-1.5 gap-2">
+                <span className="font-semibold text-gray-900 text-sm truncate flex-1">
+                  {bill.customerName}
+                </span>
+                <span className="font-bold text-gray-800 text-sm flex-shrink-0">
+                  ₹{bill.totalBillAmount || bill.amount}
+                </span>
+              </div>
+
+              {/* Row 3: Breakdown badges */}
+              {(bill.dueAmount > 0 || bill.pointsUsed > 0 || bill.balanceUsed > 0) && (
+                <div className="flex flex-wrap gap-1 mb-1.5">
+                  {bill.dueAmount > 0 && (
+                    <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-100 font-medium">
+                      Due: ₹{bill.dueAmount}
+                    </span>
+                  )}
+                  {bill.pointsUsed > 0 && (
+                    <span className="text-[9px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-medium">
+                      Pts: ₹{bill.pointsUsed}
+                    </span>
+                  )}
+                  {bill.balanceUsed > 0 && (
+                    <span className="text-[9px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded border border-green-100 font-medium">
+                      Adv: ₹{bill.balanceUsed}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Row 4: Services */}
+              <div className="text-xs text-gray-600 mb-1.5 line-clamp-2">
+                {bill.services?.length > 0 && bill.services.join(' + ')}
+                {bill.services?.length > 0 && bill.products?.length > 0 && ' + '}
+                {bill.products?.length > 0 && bill.products.map(p => `${p.productName} ×${p.quantity}`).join(' + ')}
+                {(!bill.services || bill.services.length === 0) && (!bill.products || bill.products.length === 0) && 'Service'}
+              </div>
+
+              {/* Row 5: Staff chips */}
+              <div className="flex items-center gap-1 flex-wrap">
+                <User size={11} className="text-gray-400 flex-shrink-0" />
+                {bill.staffNames && bill.staffNames.length > 0 ? (
+                  bill.staffNames.slice(0, 3).map((name, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[9px] font-medium rounded-full border border-blue-100"
                     >
-                      {/* Desktop Layout */}
-                      <div className="hidden sm:flex sm:items-center sm:gap-4">
-                        {/* Time + Status */}
-                        <div className="flex items-center gap-2 min-w-[140px]">
-                          <span className="text-sm font-semibold text-gray-800">
-                            {new Date(bill.createdAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                          <span className="text-gray-300 text-sm">·</span>
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                            Completed
-                          </span>
-                        </div>
-
-                    {/* Details */}
-<div className="flex-1">
-  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-    <span className="font-medium text-gray-800">{bill.customerName}</span>
-    <span className="text-gray-400">·</span>
-    <span className="text-gray-600 font-semibold">₹{bill.amount}</span>
-    <span className="text-gray-300">•</span>
-    <span className="text-xs text-gray-500">
-      {/* 🔥 SERVICE + PRODUCT */}
-      {bill.services?.length > 0 && bill.services.join(' + ')}
-      {bill.services?.length > 0 && bill.products?.length > 0 && ' + '}
-      {bill.products?.length > 0 && bill.products.map(p => `${p.productName} ×${p.quantity}`).join(' + ')}
-      {(!bill.services || bill.services.length === 0) && (!bill.products || bill.products.length === 0) && 'Service'}
-    </span>
-       <span className="text-gray-300">•</span>
-    <span className="text-xs text-gray-500 flex items-center gap-1 flex-wrap">
-      {bill.staffNames && bill.staffNames.length > 0 ? (
-        bill.staffNames.map((name, idx) => (
-          <span key={idx} className="inline-flex items-center gap-0.5">
-            <User size={10} className="text-gray-400" />
-            <span>{name}</span>
-            {idx < bill.staffNames.length - 1 && <span className="text-gray-300">,</span>}
-          </span>
-        ))
-      ) : (
-        <span>{bill.staffName || 'Staff'}</span>
-      )}
-    </span>
-  </div>
-</div>
-                      </div>
-
-                      {/* Mobile Layout */}
-                     
-{/* Mobile Layout - Redesigned */}
-<div className="sm:hidden">
-  {/* Row 1: Time + Status */}
-  <div className="flex items-center justify-between mb-2">
-    <span className="text-sm font-semibold text-gray-800">
-      {new Date(bill.createdAt).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}
-    </span>
-    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-      Completed
-    </span>
-  </div>
-
-  {/* Row 2: Customer + Amount */}
-  <div className="flex items-center justify-between mb-2">
-    <span className="font-semibold text-gray-900 text-sm truncate max-w-[60%]">
-      {bill.customerName}
-    </span>
-    <span className="font-bold text-gray-800 text-sm">
-      ₹{bill.amount}
-    </span>
-  </div>
-
-  {/* Row 3: Services */}
-  <div className="text-xs text-gray-600 mb-2 line-clamp-2">
-    {bill.services?.length > 0 && bill.services.join(' + ')}
-    {bill.services?.length > 0 && bill.products?.length > 0 && ' + '}
-    {bill.products?.length > 0 && bill.products.map(p => `${p.productName} ×${p.quantity}`).join(' + ')}
-    {(!bill.services || bill.services.length === 0) && (!bill.products || bill.products.length === 0) && 'Service'}
-  </div>
-
-  {/* Row 4: Staff Names - CHIPS */}
-  <div className="flex items-center gap-1 flex-wrap">
-    <User size={12} className="text-gray-400 flex-shrink-0" />
-    {bill.staffNames && bill.staffNames.length > 0 ? (
-      bill.staffNames.map((name, idx) => (
-        <span
-          key={idx}
-          className="inline-flex items-center px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-medium rounded-full border border-blue-100"
-        >
-          {name}
-        </span>
-      ))
-    ) : (
-      <span className="inline-flex items-center px-2 py-0.5 bg-gray-50 text-gray-600 text-[10px] font-medium rounded-full border border-gray-200">
-        {bill.staffName || 'Staff'}
-      </span>
-    )}
-  </div>
-</div>
-                    </div>
+                      {name}
+                    </span>
                   ))
+                ) : (
+                  <span className="inline-flex items-center px-1.5 py-0.5 bg-gray-50 text-gray-600 text-[9px] font-medium rounded-full border border-gray-200">
+                    {bill.staffName || 'Staff'}
+                  </span>
                 )}
               </div>
             </div>
-          </motion.div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+</motion.div>
 
           {/* RIGHT: Staff on Duty */}
          <motion.div 
@@ -509,6 +569,54 @@ export default function DashboardContent({
                 </div>
               </div>
             </div>
+            {/* ✅ NEW: Aaj ka Payment Breakdown */}
+<div className="bg-white rounded-xl border border-orange-200 p-3 shadow-sm">
+  <p className="text-[10px] font-medium text-orange-600 uppercase tracking-wider mb-2">
+    💰 Aaj ka Breakdown
+  </p>
+  <div className="space-y-1.5">
+    {paymentBreakdown.cashCollected > 0 && (
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-gray-600">Cash/UPI/Card</span>
+        <span className="font-medium text-green-600">
+          ₹{paymentBreakdown.cashCollected.toLocaleString()}
+        </span>
+      </div>
+    )}
+    {paymentBreakdown.pointsUsed > 0 && (
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-gray-600">Points Used</span>
+        <span className="font-medium text-blue-600">
+          ₹{paymentBreakdown.pointsUsed.toLocaleString()}
+        </span>
+      </div>
+    )}
+    {paymentBreakdown.balanceUsed > 0 && (
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-gray-600">Advance Used</span>
+        <span className="font-medium text-purple-600">
+          ₹{paymentBreakdown.balanceUsed.toLocaleString()}
+        </span>
+      </div>
+    )}
+    {paymentBreakdown.dueCreated > 0 && (
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-gray-600">Due Created</span>
+        <span className="font-medium text-red-600">
+          ₹{paymentBreakdown.dueCreated.toLocaleString()}
+        </span>
+      </div>
+    )}
+    {paymentBreakdown.dueCollected > 0 && (
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-gray-600">Due Collected</span>
+        <span className="font-medium text-orange-600">
+          ₹{paymentBreakdown.dueCollected.toLocaleString()}
+        </span>
+      </div>
+    )}
+  </div>
+</div>
             {/* Quick Actions */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-4 text-white">
               <h2 className="text-sm font-semibold mb-3 flex items-center gap-2">

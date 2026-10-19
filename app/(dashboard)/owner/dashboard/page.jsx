@@ -36,7 +36,13 @@ export default function DashboardPage() {
     new: 0,
     returning: 0,
   });
-  
+  const [paymentBreakdown, setPaymentBreakdown] = useState({
+  dueCreated: 0,
+  dueCollected: 0,
+  pointsUsed: 0,
+  balanceUsed: 0,
+  cashCollected: 0,
+});
   const [salonSettings, setSalonSettings] = useState({
     startHour: 12,
     endHour: 23,
@@ -244,9 +250,9 @@ setCustomerInsights({
         // 7. ✅ Recent Bills (last 7)
                // 7. ✅ Recent Bills (last 7)
         const recentBillsList = todayBillsList
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, 7)
-          .map((bill) => {
+  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+  // ✅ Saare bills bhejo, slice hata do
+  .map((bill) => {
             // ✅ Saare staff ke naam nikaalo (multi-staff support)
             const allStaffNames = [];
             if (bill.services && bill.services.length > 0) {
@@ -264,16 +270,24 @@ setCustomerInsights({
               allStaffNames.push(bill.staffName);
             }
 
-            return {
-              customerName: bill.customerName || "Unknown",
-              amount: bill.finalAmount || 0,
-              services: bill.services?.map(s => s.serviceName) || [],
-              products: bill.products || [],
-              staffNames: allStaffNames,        // ✅ Array
-              staffName: allStaffNames[0] || "Staff",  // backward compat
-              createdAt: bill.createdAt,
-              paymentMode: bill.paymentMode,
-            };
+         return {
+  customerName: bill.customerName || "Unknown",
+  amount: bill.finalAmount || 0,
+  dueAmount: bill.dueAdded || 0,
+  pointsUsed: bill.pointsUsed || 0,
+  balanceUsed: bill.balanceUsed || 0,
+  totalBillAmount:
+    (bill.finalAmount || 0) +
+    (bill.pointsUsed || 0) +
+    (bill.balanceUsed || 0) +
+    (bill.dueAdded || 0),
+  services: bill.services?.map(s => s.serviceName) || [],
+  products: bill.products || [],
+  staffNames: allStaffNames,
+  staffName: allStaffNames[0] || "Staff",
+  createdAt: bill.createdAt,
+  paymentMode: bill.paymentMode,
+};
           });
 
         
@@ -387,7 +401,41 @@ setStaffStatus(staffArray);
         // } catch (e) {
         //   // Silent fail
         // }
+        // ✅ Payment Breakdown calculate karo
+        let dueCreated = 0;
+        let pointsUsedTotal = 0;
+        let balanceUsedTotal = 0;
+        let cashCollected = 0;
 
+        todayBillsList.forEach((bill) => {
+          dueCreated += bill.dueAdded || 0;
+          pointsUsedTotal += bill.pointsUsed || 0;
+          balanceUsedTotal += bill.balanceUsed || 0;
+          cashCollected += bill.finalAmount || 0;
+        });
+
+        // Due collected — backend se
+        let dueCollected = 0;
+        try {
+          const wRes = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/wallet/transactions/today`,
+            { credentials: "include" }
+          );
+          if (wRes.ok) {
+            const wData = await wRes.json();
+            dueCollected = wData.dueCollected || 0;
+          }
+        } catch (e) {
+          console.log("Due collected fetch failed:", e);
+        }
+
+        setPaymentBreakdown({
+          dueCreated,
+          dueCollected,
+          pointsUsed: pointsUsedTotal,
+          balanceUsed: balanceUsedTotal,
+          cashCollected,
+        });
         // 10. ✅ Set all states
        setStats({
   salonId,
@@ -428,18 +476,19 @@ setStaffStatus(staffArray);
     );
   }
 
-  return (
-    <DashboardContent
-      salonId={stats.salonId}
-      stats={stats}
-      recentBills={recentBills}
-      insight={insight}
-      staffStatus={staffStatus}
-      workingHours={`${formatHour(salonSettings.startHour)} - ${formatHour(salonSettings.endHour)}`}
-      slotDuration={salonSettings.slotDuration}
-      totalStaff={totalStaffCount}
-      paymentSplit={paymentSplit}
-      customerInsights={customerInsights}
-    />
-  );
+ return (
+  <DashboardContent
+    salonId={stats.salonId}
+    stats={stats}
+    recentBills={recentBills}
+    insight={insight}
+    staffStatus={staffStatus}
+    workingHours={`${formatHour(salonSettings.startHour)} - ${formatHour(salonSettings.endHour)}`}
+    slotDuration={salonSettings.slotDuration}
+    totalStaff={totalStaffCount}
+    paymentSplit={paymentSplit}
+    customerInsights={customerInsights}
+    paymentBreakdown={paymentBreakdown}
+  />
+);
 }
