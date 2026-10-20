@@ -28,6 +28,7 @@ export default function BillPrintPage({ params }) {
   const [bill, setBill] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [wallet, setWallet] = useState(null);
 
   useEffect(() => {
     async function fetchBill() {
@@ -45,6 +46,22 @@ export default function BillPrintPage({ params }) {
         
         if (data.bill) {
           document.title = `Invoice ${data.bill.billNumber} | ${data.bill.salonId?.name || 'Salon'}`;
+          
+          // ✅ Fetch wallet after bill loads
+          try {
+            const walletRes = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/wallet/${data.bill.customerPhone}`,
+              { credentials: "include" }
+            );
+            if (walletRes.ok) {
+              const walletData = await walletRes.json();
+              if (walletData.success) {
+                setWallet(walletData.wallet);
+              }
+            }
+          } catch (walletErr) {
+            console.error("Wallet fetch failed:", walletErr);
+          }
         }
       } catch (err) {
         setError(err.message);
@@ -174,19 +191,32 @@ export default function BillPrintPage({ params }) {
                     {formatTime(bill.createdAt)}
                   </span>
                 </div>
-                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${
-                  isDue ? 'bg-red-50' : 'bg-green-50'
-                }`}>
-                  {isDue ? (
-                    <>
-                      <AlertCircle size={14} className="text-red-600" />
-                      <span className="text-xs font-medium text-red-700">Due</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle size={14} className="text-green-600" />
-                      <span className="text-xs font-medium text-green-700">Paid</span>
-                    </>
+                <div className="flex items-center gap-2">
+                  {/* Bill Status (cancelled) */}
+                  {bill.billStatus === 'cancelled' && (
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100">
+                      <AlertCircle size={14} className="text-gray-600" />
+                      <span className="text-xs font-medium text-gray-700">CANCELLED</span>
+                    </div>
+                  )}
+                  
+                  {/* Payment Status */}
+                  {bill.billStatus !== 'cancelled' && (
+                    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${
+                      isDue ? 'bg-red-50' : 'bg-green-50'
+                    }`}>
+                      {isDue ? (
+                        <>
+                          <AlertCircle size={14} className="text-red-600" />
+                          <span className="text-xs font-medium text-red-700">Due</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={14} className="text-green-600" />
+                          <span className="text-xs font-medium text-green-700">Paid</span>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -233,13 +263,30 @@ export default function BillPrintPage({ params }) {
                     <Scissors size={12} /> Services
                   </p>
                   {bill.services.map((s, i) => (
-                    <div key={i} className="py-1.5 border-b border-dashed border-gray-100 last:border-0">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-700">{s.serviceName}</span>
-                        <span className="font-medium text-gray-800">₹{s.price}</span>
+                    <div key={i} className="py-2 border-b border-dashed border-gray-100 last:border-0">
+                      <div className="flex justify-between items-start text-sm">
+                        <div className="flex-1">
+                          <span className="text-gray-700 font-medium">{s.serviceName}</span>
+                          {s.quantity > 1 && (
+                            <span className="text-gray-400 text-xs ml-1">× {s.quantity}</span>
+                          )}
+                          {s.duration > 0 && (
+                            <span className="text-gray-400 text-xs ml-2">({s.duration} min)</span>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          {s.quantity > 1 && (
+                            <div className="text-[10px] text-gray-400">
+                              ₹{s.unit_price || s.price} × {s.quantity}
+                            </div>
+                          )}
+                          <span className="font-medium text-gray-800">
+                            ₹{s.line_total || (s.price * (s.quantity || 1))}
+                          </span>
+                        </div>
                       </div>
                       {s.staff_names && s.staff_names.length > 0 && (
-                        <div className="text-xs text-gray-500 mt-0.5">
+                        <div className="text-xs text-gray-500 mt-1">
                           👨‍💼 {s.staff_names.join(", ")}
                         </div>
                       )}
@@ -255,11 +302,23 @@ export default function BillPrintPage({ params }) {
                     <Package size={12} /> Products
                   </p>
                   {bill.products.map((p, i) => (
-                    <div key={i} className="flex justify-between items-center text-sm py-1.5 border-b border-dashed border-gray-100 last:border-0">
-                      <span className="text-gray-700">
-                        {p.productName} <span className="text-gray-400 text-xs">× {p.quantity}</span>
-                      </span>
-                      <span className="font-medium text-gray-800">₹{p.total || p.price * p.quantity}</span>
+                    <div key={i} className="py-2 border-b border-dashed border-gray-100 last:border-0">
+                      <div className="flex justify-between items-start text-sm">
+                        <div className="flex-1">
+                          <span className="text-gray-700 font-medium">{p.productName}</span>
+                          <span className="text-gray-400 text-xs ml-1">× {p.quantity}</span>
+                        </div>
+                        <div className="text-right">
+                          {p.quantity > 1 && (
+                            <div className="text-[10px] text-gray-400">
+                              ₹{p.price} × {p.quantity}
+                            </div>
+                          )}
+                          <span className="font-medium text-gray-800">
+                            ₹{p.total || (p.price * p.quantity)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -279,6 +338,13 @@ export default function BillPrintPage({ params }) {
                       {bill.discountType === 'percent' && ` (${bill.discount}%)`}
                     </span>
                     <span>-₹{discountAmount}</span>
+                  </div>
+                )}
+
+                {bill.taxAmount > 0 && (
+                  <div className="flex justify-between text-sm py-1 text-gray-600">
+                    <span>Tax (GST)</span>
+                    <span>₹{bill.taxAmount}</span>
                   </div>
                 )}
                 
@@ -306,6 +372,14 @@ export default function BillPrintPage({ params }) {
                       </div>
                     )}
 
+                    {/* Remaining Advance */}
+                    {wallet && balanceUsed > 0 && (
+                      <div className="flex justify-between items-center text-xs px-3 py-1.5 text-gray-500">
+                        <span>Remaining Advance</span>
+                        <span className="font-medium">₹{Math.max(0, wallet.balance || 0)}</span>
+                      </div>
+                    )}
+
                     {/* Points Used */}
                     {pointsUsed > 0 && (
                       <div className="flex justify-between items-center text-sm bg-blue-50 px-3 py-2 rounded-lg">
@@ -313,6 +387,14 @@ export default function BillPrintPage({ params }) {
                           <Gift size={14} /> Points Used ({pointsUsed} pts)
                         </span>
                         <span className="font-semibold text-blue-700">-₹{pointsUsed}</span>
+                      </div>
+                    )}
+
+                    {/* Remaining Points */}
+                    {wallet && pointsUsed > 0 && (
+                      <div className="flex justify-between items-center text-xs px-3 py-1.5 text-gray-500">
+                        <span>Remaining Points</span>
+                        <span className="font-medium">{wallet.points || 0} pts</span>
                       </div>
                     )}
 
@@ -344,6 +426,43 @@ export default function BillPrintPage({ params }) {
                         <Gift size={16} /> Points Earned
                       </span>
                       <span className="font-bold text-yellow-800">+{pointsEarned} pts</span>
+                    </div>
+                  )}
+
+                  {/* ✅ Payment Summary */}
+                  <div className="mt-3 pt-3 border-t border-dashed border-gray-200">
+                    <div className="flex justify-between text-sm py-1">
+                      <span className="text-gray-500">Total Bill</span>
+                      <span className="font-medium text-gray-800">₹{payableAmount}</span>
+                    </div>
+                    <div className="flex justify-between text-sm py-1">
+                      <span className="text-gray-500">Paid</span>
+                      <span className="font-medium text-green-600">
+                        ₹{(balanceUsed + pointsUsed + (bill.finalAmount || 0))}
+                      </span>
+                    </div>
+                    {dueAdded > 0 && (
+                      <div className="flex justify-between text-sm py-1">
+                        <span className="text-gray-500">Added to Due</span>
+                        <span className="font-medium text-red-600">₹{dueAdded}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Current Wallet Summary */}
+                  {wallet && (
+                    <div className="mt-3 pt-3 border-t border-dashed border-gray-200">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-2">
+                        Current Balance
+                      </p>
+                      <div className="flex justify-between text-xs py-1">
+                        <span className="text-gray-500">Advance Balance</span>
+                        <span className="font-medium text-gray-700">₹{Math.max(0, wallet.balance || 0)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs py-1">
+                        <span className="text-gray-500">Points Balance</span>
+                        <span className="font-medium text-gray-700">{wallet.points || 0} pts</span>
+                      </div>
                     </div>
                   )}
                 </div>
