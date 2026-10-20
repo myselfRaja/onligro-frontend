@@ -571,9 +571,9 @@ export default function DashboardContent({
             </div>
             {/* ✅ NEW: Aaj ka Payment Breakdown */}
 <div className="bg-white rounded-xl border border-orange-200 p-3 shadow-sm">
-  <p className="text-[10px] font-medium text-orange-600 uppercase tracking-wider mb-2">
-    💰 Aaj ka Breakdown
-  </p>
+<p className="text-[10px] font-medium text-orange-600 uppercase tracking-wider mb-2">
+  💰 Today's Breakdown
+</p>
   <div className="space-y-1.5">
     {paymentBreakdown.cashCollected > 0 && (
       <div className="flex items-center justify-between text-xs">

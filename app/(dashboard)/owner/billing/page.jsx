@@ -16,7 +16,7 @@ export default function BillingPage() {
   const [customerSuggestions, setCustomerSuggestions] = useState([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [customerSearchLoading, setCustomerSearchLoading] = useState(false);
-
+const skipNextSearchRef = useRef(false);
   // ✅ Wallet states
   const [wallet, setWallet] = useState(null);
   const [walletLoading, setWalletLoading] = useState(false);
@@ -105,32 +105,38 @@ export default function BillingPage() {
   }
 
   // ✅ Customer search
-  useEffect(() => {
-    if (!form.customerName || form.customerName.length < 2) {
-      setCustomerSuggestions([]);
-      setShowCustomerDropdown(false);
-      return;
+useEffect(() => {
+  // ✅ Skip search if customer just selected
+  if (skipNextSearchRef.current) {
+    skipNextSearchRef.current = false;
+    return;
+  }
+
+  if (!form.customerName || form.customerName.length < 2) {
+    setCustomerSuggestions([]);
+    setShowCustomerDropdown(false);
+    return;
+  }
+
+  const timer = setTimeout(async () => {
+    setCustomerSearchLoading(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/customers/search?query=${form.customerName}`,
+        { credentials: "include" }
+      );
+      const data = await res.json();
+      setCustomerSuggestions(data.customers || []);
+      setShowCustomerDropdown(true);
+    } catch (err) {
+      console.error("Customer search failed:", err);
+    } finally {
+      setCustomerSearchLoading(false);
     }
+  }, 300);
 
-    const timer = setTimeout(async () => {
-      setCustomerSearchLoading(true);
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/customers/search?query=${form.customerName}`,
-          { credentials: "include" }
-        );
-        const data = await res.json();
-        setCustomerSuggestions(data.customers || []);
-        setShowCustomerDropdown(true);
-      } catch (err) {
-        console.error("Customer search failed:", err);
-      } finally {
-        setCustomerSearchLoading(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [form.customerName]);
+  return () => clearTimeout(timer);
+}, [form.customerName]);
 
   // ✅ Wallet fetch
   useEffect(() => {
@@ -222,26 +228,26 @@ export default function BillingPage() {
     }
     const payableAmount = Math.max(0, Math.round(totalAmount - discountVal));
 
-    // ✅ Priority: Advance → Points → Due/Cash
+        // ✅ INDUSTRY STANDARD: Advance always applied first, then points (if ticked), then remaining to due/cash
     let remaining = payableAmount;
     let balanceUsed = 0;
     let pointsUsed = 0;
     let dueAdded = 0;
     let finalAmount = 0;
 
-    // 1. Advance
-    if (useBalance && wallet?.balance > 0) {
+    // 1. Advance — ALWAYS use if available (no checkbox needed)
+    if (wallet?.balance > 0) {
       balanceUsed = Math.min(wallet.balance, remaining);
       remaining -= balanceUsed;
     }
 
-    // 2. Points
+    // 2. Points — only if user explicitly ticked (customer choice)
     if (usePoints && wallet?.points > 0) {
       pointsUsed = Math.min(wallet.points, remaining);
       remaining -= pointsUsed;
     }
 
-    // 3. Due ya Cash
+    // 3. Due ya Cash — only the remaining after advance
     if (useDue) {
       dueAdded = remaining;
       finalAmount = 0;
@@ -325,7 +331,7 @@ export default function BillingPage() {
   }
 
   // ===== GRAND TOTAL WITH DISCOUNT + WALLET =====
-  const grandTotal = useMemo(() => {
+    const grandTotal = useMemo(() => {
     const subtotal = totalAmount;
     let discount = discountAmount;
 
@@ -335,12 +341,12 @@ export default function BillingPage() {
 
     let total = Math.max(0, subtotal - discount);
 
-    // Advance pehle
-    if (useBalance && wallet?.balance > 0) {
+    // Advance ALWAYS applied first
+    if (wallet?.balance > 0) {
       total = Math.max(0, total - wallet.balance);
     }
 
-    // Points baad me
+    // Points only if ticked
     if (usePoints && wallet?.points > 0) {
       total = Math.max(0, total - wallet.points);
     }
@@ -351,7 +357,7 @@ export default function BillingPage() {
     }
 
     return Math.round(total);
-  }, [totalAmount, discountAmount, discountType, useBalance, usePoints, useDue, wallet]);
+  }, [totalAmount, discountAmount, discountType, usePoints, useDue, wallet]);
 
   // ===== EXISTING HANDLERS =====
   useEffect(() => {
@@ -502,16 +508,15 @@ Powered by Onligro`;
               <form onSubmit={createBill} className="space-y-4 sm:space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                   <div className="relative customer-search-container">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
-                    <input
-                      type="text"
-                      value={form.customerName}
-                      onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                      onFocus={() => form.customerName.length >= 2 && setShowCustomerDropdown(true)}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-                      placeholder="Type customer name..."
-                      required
-                    />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Customer Name / Phone *</label>
+<input
+  type="text"
+  value={form.customerName}
+  onChange={(e) => setForm({ ...form, customerName: e.target.value })}
+  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+  placeholder="Search by name or phone..."
+  required
+/>
 
                     {showCustomerDropdown && customerSuggestions.length > 0 && (
                       <div className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
@@ -519,15 +524,18 @@ Powered by Onligro`;
                           <button
                             key={customer._id}
                             type="button"
-                            onClick={() => {
-                              setForm(prev => ({
-                                ...prev,
-                                customerName: customer.name,
-                                customerPhone: customer.phone
-                              }));
-                              setShowCustomerDropdown(false);
-                              setCustomerSuggestions([]);
-                            }}
+                         onClick={(e) => {
+  e.preventDefault();
+  skipNextSearchRef.current = true;
+  setForm(prev => ({
+    ...prev,
+    customerName: customer.name,
+    customerPhone: customer.phone
+  }));
+  setShowCustomerDropdown(false);
+  setCustomerSuggestions([]);
+  document.activeElement?.blur();
+}}
                             className="w-full px-4 py-3 text-left hover:bg-blue-50 transition border-b border-gray-100 last:border-0 flex items-center justify-between"
                           >
                             <div className="flex items-center gap-3">
@@ -1042,25 +1050,25 @@ Powered by Onligro`;
                     <p className="text-sm font-semibold text-blue-900 mb-3">💳 Use Wallet</p>
                     <div className="space-y-2">
 
-                      {/* Advance */}
-                      {wallet.balance > 0 && (
-                        <label className="flex items-center justify-between p-3 bg-white rounded-lg border border-green-100 cursor-pointer hover:bg-green-50 transition">
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              checked={useBalance}
-                              onChange={(e) => setUseBalance(e.target.checked)}
-                              className="w-5 h-5 text-green-600 rounded"
-                            />
-                            <span className="text-sm font-medium text-gray-700">
-                              Use ₹{wallet.balance} advance
-                            </span>
-                          </div>
-                          <span className="text-sm font-bold text-green-600">
-                            ₹{wallet.balance} off
-                          </span>
-                        </label>
-                      )}
+                     
+                    {/* Advance — always applied */}
+{wallet.balance > 0 && (
+  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+    <div className="flex items-center gap-3">
+      <div className="w-5 h-5 bg-green-600 rounded flex items-center justify-center">
+        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <span className="text-sm font-medium text-gray-700">
+        Advance applied automatically
+      </span>
+    </div>
+    <span className="text-sm font-bold text-green-600">
+      ₹{wallet.balance} off
+    </span>
+  </div>
+)}
 
                       {/* Points */}
                       {wallet.points > 0 && (
