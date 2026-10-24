@@ -65,10 +65,10 @@ const skipNextSearchRef = useRef(false);
       const salonId = user?.salonId || '';
 
       const [serviceRes, staffRes, billsRes, productRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/service/all?salonId=${salonId}`, { credentials: "include" }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/all?salonId=${salonId}`, { credentials: "include" }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/all?salonId=${salonId}`, { credentials: "include" }),
-        fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/all?salonId=${salonId}`, { credentials: "include" }),
+       fetch(`${process.env.NEXT_PUBLIC_API_URL}/service/all`, { credentials: "include" }),
+fetch(`${process.env.NEXT_PUBLIC_API_URL}/staff/all`, { credentials: "include" }),
+fetch(`${process.env.NEXT_PUBLIC_API_URL}/bills/all?limit=50`, { credentials: "include" }),
+fetch(`${process.env.NEXT_PUBLIC_API_URL}/products/all`, { credentials: "include" }),
       ]);
 
       const serviceData = await serviceRes.json();

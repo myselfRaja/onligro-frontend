@@ -25,13 +25,22 @@ export default function LoginPage() {
         credentials: "include",
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
 
       if (res.ok) {
         window.location.href = "/owner/dashboard";
+      } else if (res.status === 429) {
+        // ✅ Rate limit
+        setError(
+          data.error || 
+          "Too many login attempts. Please wait 15 minutes and try again."
+        );
+      } else if (res.status === 400 || res.status === 401) {
+        // ✅ Invalid credentials
+        setError(data.message || data.error || "Invalid email or password");
       } else {
-        setError(data.message || "Invalid credentials");
+        // ✅ Other errors
+        setError(data.message || data.error || "Login failed. Please try again.");
       }
     } catch (err) {
       setError("Network error. Please try again.");
