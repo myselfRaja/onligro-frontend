@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, Repeat, ArrowUpRight, Sparkles, IndianRupee } from "lucide-react";
+import { Calendar, Repeat, ArrowUpRight, Sparkles, IndianRupee, Scissors, Package } from "lucide-react";
 
 export default function ReportsSummaryCards({ summary }) {
   const cards = [
@@ -8,26 +8,41 @@ export default function ReportsSummaryCards({ summary }) {
       title: "Total Revenue",
       value: `₹${summary?.totalRevenue?.toLocaleString() || 0}`,
       subtitle: "Sales this period",
-  
       icon: IndianRupee,
       gradient: "from-emerald-500 to-teal-500",
       bgGradient: "from-emerald-50 to-teal-50",
     },
     {
+      title: "Service Revenue",
+      value: `₹${summary?.serviceRevenue?.toLocaleString() || 0}`,
+      subtitle: "From services",
+      icon: Scissors,
+      gradient: "from-blue-500 to-cyan-500",
+      bgGradient: "from-blue-50 to-cyan-50",
+    },
+    {
+      title: "Product Revenue",
+      value: `₹${summary?.productRevenue?.toLocaleString() || 0}`,
+      subtitle: "From products",
+      icon: Package,
+      gradient: "from-orange-500 to-amber-500",
+      bgGradient: "from-orange-50 to-amber-50",
+    },
+    {
       title: "Bill Created",
-     value: summary?.totalBills || 0,
+      value: summary?.totalBills || 0,
       subtitle: "Completed bills",
       icon: Calendar,
-      gradient: "from-blue-500 to-indigo-500",
-      bgGradient: "from-blue-50 to-indigo-50",
+      gradient: "from-indigo-500 to-purple-500",
+      bgGradient: "from-indigo-50 to-purple-50",
     },
     {
       title: "Average Bill Value",
-     value: `₹${summary?.avgBillValue?.toLocaleString() || 0}`,
+      value: `₹${summary?.avgBillValue?.toLocaleString() || 0}`,
       subtitle: "Average customer spend",
       icon: IndianRupee,
-      gradient: "from-violet-500 to-purple-500",
-      bgGradient: "from-violet-50 to-purple-50",
+      gradient: "from-violet-500 to-fuchsia-500",
+      bgGradient: "from-violet-50 to-fuchsia-50",
     },
     {
       title: "Repeat Customers",
@@ -40,7 +55,7 @@ export default function ReportsSummaryCards({ summary }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
       {cards.map((card, index) => (
         <div
           key={index}
@@ -58,7 +73,7 @@ export default function ReportsSummaryCards({ summary }) {
               
               <div className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-full group-hover:bg-white transition-colors">
                 <ArrowUpRight size={12} className="text-emerald-500" />
-                <span className="text-xs font-semibold text-gray-700">{card.trend}</span>
+                <span className="text-xs font-semibold text-gray-700">Live</span>
               </div>
             </div>
 
